@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1a2a44; /* Deep Navy */
+  --color-secondary: #c5a059; /* Gold */
+  --color-bg: #fdfcf8; /* Paper White */
+  --color-surface: #ffffff;
+  --color-text: #2c3e50;
+  --color-text-muted: #7f8c8d;
+  --color-accent: #e67e22;
+}
+
+@layer base {
+  body {
+    @apply bg-[var(--color-bg)] text-[var(--color-text)] antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .bible-text {
+    font-family: 'Lora', serif;
+  }
+  
+  .premium-heading {
+    font-family: 'Playfair Display', serif;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  }
+  
+  .card-premium {
+    @apply glass rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300;
+  }
+  
+  .btn-primary {
+    @apply bg-[var(--color-primary)] text-white px-6 py-3 rounded-2xl font-semibold 
+           hover:bg-[var(--color-primary)]/90 active:scale-95 transition-all;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-200 rounded-full hover:bg-gray-300 transition-colors;
+}
+
+/* Parallel View Layouts */
+.parallel-container {
+  display: grid;
+  gap: 2rem;
+  width: 100%;
+}
+
+.parallel-1 { grid-template-columns: 1fr; }
+.parallel-2 { grid-template-columns: 1fr 1fr; }
+.parallel-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+@media (max-width: 1024px) {
+  .parallel-2, .parallel-3 { grid-template-columns: 1fr; }
+}
