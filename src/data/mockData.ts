@@ -1,7 +1,78 @@
-export const BOOKS = [
-  { id: 'GEN', name: '창세기', chapters: 50 },
-  { id: 'EXO', name: '출애굽기', chapters: 40 },
-  // ... more
+export interface BibleBook {
+  id: string;      // Shortname (GEN, EXO...)
+  name: string;    // Korean Name
+  enName: string;  // English Name
+  chapters: number;
+  jsonId: string;  // ID in JSON (1-66)
+}
+
+export const BOOKS: BibleBook[] = [
+  { id: 'GEN', name: '창세기', enName: 'Genesis', chapters: 50, jsonId: '1' },
+  { id: 'EXO', name: '출애굽기', enName: 'Exodus', chapters: 40, jsonId: '2' },
+  { id: 'LEV', name: '레위기', enName: 'Leviticus', chapters: 27, jsonId: '3' },
+  { id: 'NUM', name: '민수기', enName: 'Numbers', chapters: 36, jsonId: '4' },
+  { id: 'DEU', name: '신명기', enName: 'Deuteronomy', chapters: 34, jsonId: '5' },
+  { id: 'JOS', name: '여호수아', enName: 'Joshua', chapters: 24, jsonId: '6' },
+  { id: 'JDG', name: '사사기', enName: 'Judges', chapters: 21, jsonId: '7' },
+  { id: 'RUT', name: '룻기', enName: 'Ruth', chapters: 4, jsonId: '8' },
+  { id: '1SA', name: '사무엘상', enName: '1 Samuel', chapters: 31, jsonId: '9' },
+  { id: '2SA', name: '사무엘하', enName: '2 Samuel', chapters: 24, jsonId: '10' },
+  { id: '1KI', name: '열왕기상', enName: '1 Kings', chapters: 22, jsonId: '11' },
+  { id: '2KI', name: '열왕기하', enName: '2 Kings', chapters: 25, jsonId: '12' },
+  { id: '1CH', name: '역대상', enName: '1 Chronicles', chapters: 29, jsonId: '13' },
+  { id: '2CH', name: '역대하', enName: '2 Chronicles', chapters: 36, jsonId: '14' },
+  { id: 'EZR', name: '에스라', enName: 'Ezra', chapters: 10, jsonId: '15' },
+  { id: 'NEH', name: '느헤미야', enName: 'Nehemiah', chapters: 13, jsonId: '16' },
+  { id: 'EST', name: '에스더', enName: 'Esther', chapters: 10, jsonId: '17' },
+  { id: 'JOB', name: '욥기', enName: 'Job', chapters: 42, jsonId: '18' },
+  { id: 'PSA', name: '시편', enName: 'Psalms', chapters: 150, jsonId: '19' },
+  { id: 'PRO', name: '잠언', enName: 'Proverbs', chapters: 31, jsonId: '20' },
+  { id: 'ECC', name: '전도서', enName: 'Ecclesiastes', chapters: 12, jsonId: '21' },
+  { id: 'SNG', name: '아가', enName: 'Song of Solomon', chapters: 8, jsonId: '22' },
+  { id: 'ISA', name: '이사야', enName: 'Isaiah', chapters: 66, jsonId: '23' },
+  { id: 'JER', name: '예레미야', enName: 'Jeremiah', chapters: 52, jsonId: '24' },
+  { id: 'LAM', name: '예레미야 애가', enName: 'Lamentations', chapters: 5, jsonId: '25' },
+  { id: 'EZK', name: '에스겔', enName: 'Ezekiel', chapters: 48, jsonId: '26' },
+  { id: 'DAN', name: '다니엘', enName: 'Daniel', chapters: 12, jsonId: '27' },
+  { id: 'HOS', name: '호세아', enName: 'Hosea', chapters: 14, jsonId: '28' },
+  { id: 'JOL', name: '요엘', enName: 'Joel', chapters: 3, jsonId: '29' },
+  { id: 'AMO', name: '아모스', enName: 'Amos', chapters: 9, jsonId: '30' },
+  { id: 'OBA', name: '오바댜', enName: 'Obadiah', chapters: 1, jsonId: '31' },
+  { id: 'JON', name: '요나', enName: 'Jonah', chapters: 4, jsonId: '32' },
+  { id: 'MIC', name: '미가', enName: 'Micah', chapters: 7, jsonId: '33' },
+  { id: 'NAM', name: '나훔', enName: 'Nahum', chapters: 3, jsonId: '34' },
+  { id: 'HAB', name: '하박국', enName: 'Habakkuk', chapters: 3, jsonId: '35' },
+  { id: 'ZEP', name: '스바냐', enName: 'Zephaniah', chapters: 3, jsonId: '36' },
+  { id: 'HAG', name: '학개', enName: 'Haggai', chapters: 2, jsonId: '37' },
+  { id: 'ZEC', name: '스가랴', enName: 'Zechariah', chapters: 14, jsonId: '38' },
+  { id: 'MAL', name: '말라기', enName: 'Malachi', chapters: 4, jsonId: '39' },
+  { id: 'MAT', name: '마태복음', enName: 'Matthew', chapters: 28, jsonId: '40' },
+  { id: 'MRK', name: '마가복음', enName: 'Mark', chapters: 16, jsonId: '41' },
+  { id: 'LUK', name: '누가복음', enName: 'Luke', chapters: 24, jsonId: '42' },
+  { id: 'JHN', name: '요한복음', enName: 'John', chapters: 21, jsonId: '43' },
+  { id: 'ACT', name: '사도행전', enName: 'Acts', chapters: 28, jsonId: '44' },
+  { id: 'ROM', name: '로마서', enName: 'Romans', chapters: 16, jsonId: '45' },
+  { id: '1CO', name: '고린도전서', enName: '1 Corinthians', chapters: 16, jsonId: '46' },
+  { id: '2CO', name: '고린도후서', enName: '2 Corinthians', chapters: 13, jsonId: '47' },
+  { id: 'GAL', name: '갈라디아서', enName: 'Galatians', chapters: 6, jsonId: '48' },
+  { id: 'EPH', name: '에베소서', enName: 'Ephesians', chapters: 6, jsonId: '49' },
+  { id: 'PHP', name: '빌립보서', enName: 'Philippians', chapters: 4, jsonId: '50' },
+  { id: 'COL', name: '골로새서', enName: 'Colossians', chapters: 4, jsonId: '51' },
+  { id: '1TH', name: '데살로니가전서', enName: '1 Thessalonians', chapters: 5, jsonId: '52' },
+  { id: '2TH', name: '데살로니가후서', enName: '2 Thessalonians', chapters: 3, jsonId: '53' },
+  { id: '1TI', name: '디모데전서', enName: '1 Timothy', chapters: 6, jsonId: '54' },
+  { id: '2TI', name: '디모데후서', enName: '2 Timothy', chapters: 4, jsonId: '55' },
+  { id: 'TIT', name: '디도서', enName: 'Titus', chapters: 3, jsonId: '56' },
+  { id: 'PHM', name: '빌레몬서', enName: 'Philemon', chapters: 1, jsonId: '57' },
+  { id: 'HEB', name: '히브리서', enName: 'Hebrews', chapters: 13, jsonId: '58' },
+  { id: 'JAS', name: '야고보서', enName: 'James', chapters: 5, jsonId: '59' },
+  { id: '1PE', name: '베드로전서', enName: '1 Peter', chapters: 5, jsonId: '60' },
+  { id: '2PE', name: '베드로후서', enName: '2 Peter', chapters: 3, jsonId: '61' },
+  { id: '1JN', name: '요한일서', enName: '1 John', chapters: 5, jsonId: '62' },
+  { id: '2JN', name: '요한이서', enName: '2 John', chapters: 1, jsonId: '63' },
+  { id: '3JN', name: '요한삼서', enName: '3 John', chapters: 1, jsonId: '64' },
+  { id: 'JUD', name: '유다서', enName: 'Jude', chapters: 1, jsonId: '65' },
+  { id: 'REV', name: '요한계시록', enName: 'Revelation', chapters: 22, jsonId: '66' },
 ];
 
 export const BIBLE_VERSIONS = [
@@ -9,33 +80,3 @@ export const BIBLE_VERSIONS = [
   { id: 'KJV', name: 'KJV', lang: 'en' },
   { id: 'JOU', name: '口語訳', lang: 'ja' },
 ];
-
-export const MOCK_BIBLE_DATA: any = {
-  'KRV': {
-    'GEN': {
-      1: [
-        { v: 1, t: '태초에 하나님이 천지를 창조하시니라' },
-        { v: 2, t: '땅이 혼돈하고 공허하며 흑암이 깊음 위에 있고 하나님의 신은 수면에 운행하시니라' },
-        { v: 3, t: '하나님이 가라사대 빛이 있으라 하시매 빛이 있었고' },
-      ]
-    }
-  },
-  'KJV': {
-    'GEN': {
-      1: [
-        { v: 1, t: 'In the beginning God created the heaven and the earth.' },
-        { v: 2, t: 'And the earth was without form, and void; and darkness was upon the face of the deep. And the Spirit of God moved upon the face of the waters.' },
-        { v: 3, t: 'And God said, Let there be light: and there was light.' },
-      ]
-    }
-  },
-  'JOU': {
-    'GEN': {
-      1: [
-        { v: 1, t: '<ruby>始<rt>はじ</rt></ruby>めに<ruby>神<rt>かみ</rt></ruby>は<ruby>天<rt>てん</rt></ruby>と<ruby>地<rt>ち</rt></ruby>とを<ruby>創造<rt>そうぞう</rt></ruby>された。' },
-        { v: 2, t: '<ruby>地<rt>ち</rt></ruby>은<ruby>形<rt>かたち</rt></ruby>なく、むなしく、やみが<ruby>淵<rt>ふち</rt></ruby>の<ruby>面<rt>おもて</rt></ruby>にあり、<ruby>神<rt>か미</rt></ruby>の<ruby>霊<rt>れい</rt></ruby>が<ruby>水<rt>みず</rt></ruby>の<ruby>面<rt>おもて</rt></ruby>をはおっていた。' },
-        { v: 3, t: '<ruby>神<rt>かみ</rt></ruby>は「<ruby>光<rt>ひかり</rt></ruby>あれ」と<ruby>言<rt>い</rt></ruby>われた。すると<ruby>光<rt>ひかり</rt></ruby>があった。' },
-      ]
-    }
-  }
-};

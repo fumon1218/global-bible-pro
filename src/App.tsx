@@ -4,9 +4,51 @@ import { cn } from './lib/utils';
 
 import ReadingMode from './components/Bible/ReadingMode';
 import MemoryMode from './components/Memory/MemoryMode';
+import BibleSearch from './components/Bible/BibleSearch';
 
-const SearchView = () => <div className="p-8">통합 검색 준비 중...</div>;
-const SettingsView = () => <div className="p-8">환경 설정 준비 중...</div>;
+const SearchView = ({ onSelect }: { onSelect: (b: string, c: number, v: number) => void }) => (
+  <div className="h-full flex flex-col bg-white">
+    <header className="p-8 pb-4">
+      <h2 className="text-3xl font-bold premium-heading mb-2">통합 검색</h2>
+      <p className="text-gray-400 text-sm">성경 전체에서 원하는 말씀을 찾아보세요.</p>
+    </header>
+    <div className="flex-1 overflow-hidden">
+      <BibleSearch activeVersion="KRV" onSelectResult={onSelect} />
+    </div>
+  </div>
+);
+
+const SettingsView = () => (
+  <div className="p-8 md:p-12 max-w-2xl mx-auto space-y-12">
+    <header>
+      <h2 className="text-4xl font-bold premium-heading mb-2">환경 설정</h2>
+      <p className="text-gray-400">앱 사용 환경을 최적화하세요.</p>
+    </header>
+    
+    <div className="space-y-8">
+      <div className="card-premium p-6 flex items-center justify-between">
+        <div>
+          <h4 className="font-bold">다크 모드</h4>
+          <p className="text-xs text-gray-400 mt-1">준비 중인 기능입니다.</p>
+        </div>
+        <div className="w-12 h-6 bg-gray-200 rounded-full relative">
+          <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+        </div>
+      </div>
+      
+      <div className="card-premium p-6 space-y-4">
+        <h4 className="font-bold">글꼴 크기</h4>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-gray-400">작게</span>
+          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="w-1/2 h-full bg-[var(--color-secondary)]" />
+          </div>
+          <span className="text-lg text-gray-400">크게</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'SETTINGS';
 
@@ -77,7 +119,16 @@ export default function App() {
         <main className="flex-1 overflow-y-auto">
           {view === 'READING' && <ReadingMode />}
           {view === 'MEMORY' && <MemoryMode />}
-          {view === 'SEARCH' && <SearchView />}
+          {view === 'SEARCH' && (
+            <SearchView onSelect={(b, c, v) => {
+              setView('READING');
+              // This part needs a way to pass the selection to ReadingMode
+              // For now, we'll assume ReadingMode handles internal state
+              // In a real app, we'd use a Context or a shared state.
+              localStorage.setItem('gbp_last_ref', JSON.stringify({ b, c, v }));
+              window.dispatchEvent(new Event('gbp_navigate'));
+            }} />
+          )}
           {view === 'SETTINGS' && <SettingsView />}
         </main>
       </div>
