@@ -173,8 +173,8 @@ export default function ReadingMode() {
 
   return (
     <div className="flex flex-col h-full bg-white relative">
-      {/* Top Controls - Fixed height for better sticky alignment */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 min-h-[72px]">
+      {/* Top Controls - Unified sticky header */}
+      <div className="sticky top-0 z-40 bg-white/98 backdrop-blur-md border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">
           <select 
             value={selectedBook}
@@ -241,16 +241,16 @@ export default function ReadingMode() {
         )}
         
         <div className={cn(
-          "parallel-container p-6 md:p-12 min-w-full",
-          activeVersions.length === 1 ? "pb-24" : ""
+          "parallel-container p-4 md:p-12 min-w-full",
+          activeVersions.length === 1 ? "pb-32" : ""
         )}
         style={{
           gridTemplateColumns: `repeat(${activeVersions.length}, minmax(300px, 1fr))`
         }}>
           {activeVersions.map(versionId => (
-            <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
-              <div className="flex items-center justify-between sticky top-[72px] md:top-[80px] bg-white/95 py-3 z-10 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] px-2 -mx-2">
-                <span className="text-xs font-black uppercase tracking-widest text-[var(--color-secondary)] px-2 bg-gray-50 rounded">
+            <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
+              <div className="sticky top-[72px] md:top-[80px] bg-white z-30 py-4 mb-6 border-b border-gray-50 flex items-center justify-between px-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] px-3 py-1 bg-gray-50 rounded-full">
                   {BIBLE_VERSIONS.find(v => v.id === versionId)?.name}
                 </span>
               </div>
