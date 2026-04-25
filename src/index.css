@@ -67,3 +67,20 @@
 @media (max-width: 1024px) {
   .parallel-2, .parallel-3 { grid-template-columns: 1fr; }
 }
+
+/* Japanese Furigana (Ruby) styling */
+.japanese-content {
+  line-height: 2.8 !important;
+}
+
+ruby {
+  ruby-align: center;
+  ruby-position: over;
+}
+
+rt {
+  font-size: 0.5em;
+  color: #c5a059; /* Matching secondary gold */
+  font-weight: 700;
+  user-select: none; /* Prevent furigana from being selected in copy */
+}

@@ -53,14 +53,16 @@ export default function ReadingMode() {
 
       setIsLoading(true);
       try {
-        const newData = { ...loadedData };
         for (const vId of versionsToFetch) {
-          const response = await fetch(`${import.meta.env.BASE_URL}data/bible/${vId.toLowerCase()}.json`);
+          const baseUrl = import.meta.env.BASE_URL.endsWith('/') 
+            ? import.meta.env.BASE_URL 
+            : `${import.meta.env.BASE_URL}/`;
+          const response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json`);
           if (response.ok) {
-            newData[vId] = await response.json();
+            const data = await response.json();
+            setLoadedData(prev => ({ ...prev, [vId]: data }));
           }
         }
-        setLoadedData(newData);
       } catch (error) {
         console.error("Failed to fetch Bible data:", error);
       } finally {
@@ -69,7 +71,7 @@ export default function ReadingMode() {
     };
 
     fetchBibleData();
-  }, [activeVersions, loadedData]);
+  }, [activeVersions]);
 
   // Handle global navigation (from search)
   useEffect(() => {
@@ -215,12 +217,15 @@ export default function ReadingMode() {
         
         <div className={cn(
           "parallel-container p-6 md:p-12 min-w-full",
-          activeVersions.length === 1 ? "parallel-1" : activeVersions.length === 2 ? "parallel-2" : "parallel-3"
-        )}>
+          activeVersions.length === 1 ? "pb-24" : ""
+        )}
+        style={{
+          gridTemplateColumns: `repeat(${activeVersions.length}, minmax(300px, 1fr))`
+        }}>
           {activeVersions.map(versionId => (
-            <div key={versionId} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-black uppercase tracking-widest text-[var(--color-secondary)]">
+            <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
+              <div className="flex items-center justify-between mb-4 sticky top-[80px] bg-white/90 py-2 z-10">
+                <span className="text-xs font-black uppercase tracking-widest text-[var(--color-secondary)] px-2 bg-gray-50 rounded">
                   {BIBLE_VERSIONS.find(v => v.id === versionId)?.name}
                 </span>
               </div>
@@ -261,8 +266,9 @@ export default function ReadingMode() {
                     </div>
                   ))
                 ) : (
-                  <div className="py-12 text-center text-gray-400 text-sm">
-                    {loadedData[versionId] ? "본문을 불러올 수 없습니다." : "데이터 로딩 중..."}
+                  <div className="py-24 text-center text-gray-400 text-sm flex flex-col items-center gap-4">
+                    <Loader2 className="animate-spin text-gray-200" size={24} />
+                    <span>{loadedData[versionId] ? "본문을 구성하는 중..." : "말씀을 불러오는 중..."}</span>
                   </div>
                 )}
               </div>
