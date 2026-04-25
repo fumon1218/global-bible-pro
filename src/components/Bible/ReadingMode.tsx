@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Columns, LayoutList, Share2, Heart, MessageSquare, X, Loader2, Search as SearchIcon } from 'lucide-react';
 import { BOOKS, BIBLE_VERSIONS } from '../../data/mockData';
 import BibleSearch from './BibleSearch';
+import BibleSelector from './BibleSelector';
 import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -26,6 +27,7 @@ export default function ReadingMode() {
   const [savedVerses, setSavedVerses] = useState<string[]>([]);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [highlights, setHighlights] = useState<Record<string, { color: string, underline: boolean }>>({});
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
   // Memoized color map
   const COLORS = [
@@ -258,31 +260,34 @@ export default function ReadingMode() {
       {/* Top Controls - Unified sticky header */}
       <div className="sticky top-0 z-[60] bg-white border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">
-          <select 
-            value={selectedBook}
-            onChange={(e) => {
-              setSelectedBook(e.target.value);
-              setSelectedChapter(1);
-            }}
-            className="bg-gray-100 px-4 py-2 rounded-xl font-bold text-sm focus:outline-none focus:ring-2 ring-[var(--color-secondary)] transition-all"
+          <button 
+            onClick={() => setIsSelectorOpen(true)}
+            className="flex items-center gap-3 bg-gray-50 hover:bg-gray-100 px-4 py-2.5 rounded-2xl border border-gray-100 transition-all group"
           >
-            {BOOKS.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          <div className="flex items-center bg-gray-100 rounded-xl px-2">
+            <div className="flex flex-col items-start leading-none gap-1">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{currentBook?.enName}</span>
+              <span className="text-sm font-black text-gray-900">{currentBook?.name} {selectedChapter}장</span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 group-hover:text-[var(--color-secondary)] transition-colors">
+              <ChevronRight size={16} />
+            </div>
+          </button>
+          
+          <div className="hidden md:flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-100">
             <button 
               onClick={() => setSelectedChapter(Math.max(1, selectedChapter - 1))} 
               disabled={selectedChapter <= 1}
-              className="p-2 disabled:opacity-30"
+              className="p-2 hover:bg-white rounded-xl text-gray-400 hover:text-gray-900 disabled:opacity-30 transition-all"
             >
-              <ChevronLeft size={16}/>
+              <ChevronLeft size={18}/>
             </button>
-            <span className="px-2 font-bold min-w-[3rem] text-center">{selectedChapter}장</span>
+            <div className="w-px h-4 bg-gray-200 mx-1" />
             <button 
               onClick={() => setSelectedChapter(Math.min(currentBook?.chapters || 1, selectedChapter + 1))} 
               disabled={selectedChapter >= (currentBook?.chapters || 1)}
-              className="p-2 disabled:opacity-30"
+              className="p-2 hover:bg-white rounded-xl text-gray-400 hover:text-gray-900 disabled:opacity-30 transition-all"
             >
-              <ChevronRight size={16}/>
+              <ChevronRight size={18}/>
             </button>
           </div>
         </div>
@@ -558,6 +563,28 @@ export default function ReadingMode() {
           </div>
         </div>
       )}
+
+      {/* Bible Selector Modal */}
+      <BibleSelector 
+        isOpen={isSelectorOpen}
+        onClose={() => setIsSelectorOpen(false)}
+        currentBook={selectedBook}
+        currentChapter={selectedChapter}
+        maxVerse={currentVerses(activeVersions[0]).length || 80}
+        onSelect={(bookId, chap, vers) => {
+          setSelectedBook(bookId);
+          setSelectedChapter(chap);
+          setIsSelectorOpen(false);
+          // Scroll to verse after a short delay to allow data to load
+          setTimeout(() => {
+            const element = document.getElementById(`verse-${vers}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setSelectedVerse(vers);
+            }
+          }, 800);
+        }}
+      />
     </div>
   );
 }
