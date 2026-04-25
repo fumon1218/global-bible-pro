@@ -5,7 +5,9 @@ import BibleSearch from './BibleSearch';
 import BibleSelector from './BibleSelector';
 import BibleSettings from './BibleSettings';
 import NoteEditor from './NoteEditor';
-import { Type, Edit3, StickyNote } from 'lucide-react';
+import UserDashboard from './UserDashboard';
+import ReadingPlan from './ReadingPlan';
+import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -34,6 +36,9 @@ export default function ReadingMode() {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Appearance States
   const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('gbp_font_size')) || 18);
@@ -354,6 +359,23 @@ export default function ReadingMode() {
           >
             <SearchIcon size={20} />
           </button>
+
+          <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block" />
+
+          <button 
+            onClick={() => setIsPlanOpen(true)}
+            className="hidden md:flex p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"
+            title="통독 계획"
+          >
+            <Calendar size={20} />
+          </button>
+          <button 
+            onClick={() => setIsDashboardOpen(true)}
+            className="p-2.5 bg-gray-900 text-white rounded-xl hover:bg-black transition-all shadow-md active:scale-95"
+            title="마이 페이지"
+          >
+            <User size={20} />
+          </button>
           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-2xl">
             {BIBLE_VERSIONS.map(v => (
               <button
@@ -667,6 +689,35 @@ export default function ReadingMode() {
           verseText={currentVerses(activeVersions[0]).find(v => v.v === selectedVerse)?.t || ''}
         />
       )}
+
+      {/* User Dashboard */}
+      <UserDashboard 
+        isOpen={isDashboardOpen}
+        onClose={() => setIsDashboardOpen(false)}
+        onNavigate={(b, c, v) => {
+          setSelectedBook(b);
+          setSelectedChapter(c);
+          setIsDashboardOpen(false);
+          setTimeout(() => {
+            const element = document.getElementById(`verse-${v}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setSelectedVerse(v);
+            }
+          }, 800);
+        }}
+      />
+
+      {/* Reading Plan */}
+      <ReadingPlan 
+        isOpen={isPlanOpen}
+        onClose={() => setIsPlanOpen(false)}
+        onNavigate={(b, c) => {
+          setSelectedBook(b);
+          setSelectedChapter(c);
+          setIsPlanOpen(false);
+        }}
+      />
     </div>
   );
 }
