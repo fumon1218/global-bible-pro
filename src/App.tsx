@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Book, Brain, Search, Settings as SettingsIcon, Menu, X } from 'lucide-react';
+import { Book, Brain, Search, Settings as SettingsIcon, Menu, X, Users } from 'lucide-react';
 import { cn } from './lib/utils';
 
 import ReadingMode from './components/Bible/ReadingMode';
 import MemoryMode from './components/Memory/MemoryMode';
 import BibleSearch from './components/Bible/BibleSearch';
+import TrackerMode from './components/Tracker/TrackerMode';
 
 const SearchView = ({ onSelect }: { onSelect: (b: string, c: number, v: number) => void }) => (
   <div className="h-full flex flex-col bg-white">
@@ -50,7 +51,7 @@ const SettingsView = () => (
   </div>
 );
 
-type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'SETTINGS';
+type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'TRACKER' | 'SETTINGS';
 
 export default function App() {
   const [view, setView] = useState<ViewMode>('READING');
@@ -59,6 +60,7 @@ export default function App() {
   const navItems = [
     { id: 'READING', label: '성경 읽기', icon: Book },
     { id: 'MEMORY', label: '암송 수첩', icon: Brain },
+    { id: 'TRACKER', label: '읽기표', icon: Users },
     { id: 'SEARCH', label: '통합 검색', icon: Search },
     { id: 'SETTINGS', label: '환경 설정', icon: SettingsIcon },
   ];
@@ -129,6 +131,7 @@ export default function App() {
               window.dispatchEvent(new Event('gbp_navigate'));
             }} />
           )}
+          {view === 'TRACKER' && <TrackerMode />}
           {view === 'SETTINGS' && <SettingsView />}
         </main>
       </div>
