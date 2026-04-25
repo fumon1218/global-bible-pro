@@ -3,10 +3,14 @@ import { ChevronRight, ChevronLeft, Columns, LayoutList, Share2, Heart, MessageS
 import { BOOKS, BIBLE_VERSIONS } from '../../data/mockData';
 import BibleSearch from './BibleSearch';
 import { cn } from '../../lib/utils';
+import { db } from '../../lib/firebase';
+import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 interface Verse {
   v: number;
   t: string;
+  highlight?: string;
+  underline?: boolean;
 }
 
 export default function ReadingMode() {
@@ -20,11 +24,28 @@ export default function ReadingMode() {
   const [isCommentaryLoading, setIsCommentaryLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [savedVerses, setSavedVerses] = useState<string[]>([]);
+  const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
+  const [highlights, setHighlights] = useState<Record<string, { color: string, underline: boolean }>>({});
 
-  // Load saved verses
+  // Memoized color map
+  const COLORS = [
+    { id: 'yellow', bg: 'bg-yellow-200', text: 'text-yellow-900', border: 'border-yellow-400' },
+    { id: 'green', bg: 'bg-green-200', text: 'text-green-900', border: 'border-green-400' },
+    { id: 'blue', bg: 'bg-blue-200', text: 'text-blue-900', border: 'border-blue-400' },
+    { id: 'pink', bg: 'bg-pink-200', text: 'text-pink-900', border: 'border-pink-400' },
+  ];
+
+  // Load initial data and saved position
   useEffect(() => {
     const saved = localStorage.getItem('gbp_saved_verses');
     if (saved) setSavedVerses(JSON.parse(saved));
+
+    const gbp_last_ref = localStorage.getItem('gbp_last_ref');
+    if (gbp_last_ref) {
+      const { b, c } = JSON.parse(gbp_last_ref);
+      setSelectedBook(b);
+      setSelectedChapter(c);
+    }
   }, []);
 
   const toggleSaveVerse = (bookId: string, chap: number, vers: number, text: string) => {
@@ -33,11 +54,9 @@ export default function ReadingMode() {
     
     if (savedVerses.includes(verseKey)) {
       newSaved = savedVerses.filter(k => k !== verseKey);
-      // Also remove the full data
       localStorage.removeItem(`gbp_verse_data_${verseKey}`);
     } else {
       newSaved.push(verseKey);
-      // Store the text for memory mode
       localStorage.setItem(`gbp_verse_data_${verseKey}`, JSON.stringify({ bookId, chap, vers, text }));
     }
     
@@ -47,16 +66,12 @@ export default function ReadingMode() {
 
   const handleShare = async (verse: Verse) => {
     const book = BOOKS.find(b => b.id === selectedBook);
-    // Strip HTML tags for clean sharing
     const cleanText = verse.t.replace(/<[^>]*>?/gm, '');
     const text = `${book?.name} ${selectedChapter}:${verse.v}\n\n${cleanText}\n\n- Global Bible Pro`;
     
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: '성경 말씀 공유',
-          text: text,
-        });
+        await navigator.share({ title: '성경 말씀 공유', text });
       } catch (error) {
         console.error('Error sharing:', error);
       }
@@ -79,9 +94,7 @@ export default function ReadingMode() {
       setIsLoading(true);
       try {
         for (const vId of versionsToFetch) {
-          const baseUrl = import.meta.env.BASE_URL.endsWith('/') 
-            ? import.meta.env.BASE_URL 
-            : `${import.meta.env.BASE_URL}/`;
+          const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
           const response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json?t=${Date.now()}`);
           if (response.ok) {
             const data = await response.json();
@@ -98,7 +111,7 @@ export default function ReadingMode() {
     fetchBibleData();
   }, [activeVersions]);
 
-  // Handle global navigation (from search)
+  // Handle global navigation
   useEffect(() => {
     const handleNavigate = () => {
       const lastRef = localStorage.getItem('gbp_last_ref');
@@ -124,7 +137,6 @@ export default function ReadingMode() {
 
       setIsCommentaryLoading(true);
       try {
-        // Try local Chokmah first with cache busting
         const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
         const response = await fetch(`${baseUrl}data/bible/chokmah.json?t=${Date.now()}`);
         if (response.ok) {
@@ -133,7 +145,6 @@ export default function ReadingMode() {
           if (book) {
             const chapData = allData.book[book.jsonId]?.chapter[selectedChapter.toString()];
             if (chapData) {
-              // Convert our custom format to the UI's expected format
               const formatted = Object.entries(chapData.verse).map(([v, content]: [string, any]) => ({
                 verses: v,
                 content: content.text
@@ -143,19 +154,9 @@ export default function ReadingMode() {
               setCommentaryData(null);
             }
           }
-        } else {
-          // Fallback to Matthew Henry API
-          const book = BOOKS.find(b => b.id === selectedBook);
-          const apiResponse = await fetch(`https://bible.helloao.org/api/c/matthew-henry/${book?.jsonId}/${selectedChapter}.json`);
-          if (apiResponse.ok) {
-            setCommentaryData(await apiResponse.json());
-          } else {
-            setCommentaryData(null);
-          }
         }
       } catch (error) {
         console.error("Failed to fetch commentary:", error);
-        setCommentaryData(null);
       } finally {
         setIsCommentaryLoading(false);
       }
@@ -163,6 +164,68 @@ export default function ReadingMode() {
 
     fetchCommentary();
   }, [showCommentary, selectedBook, selectedChapter]);
+
+  // Fetch Highlights from Firestore & Save Last Position
+  useEffect(() => {
+    const fetchHighlights = async () => {
+      const q = query(
+        collection(db, "highlights"),
+        where("bookId", "==", selectedBook),
+        where("chapter", "==", selectedChapter)
+      );
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const newHighlights: any = {};
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          newHighlights[data.verse] = { color: data.color, underline: data.underline };
+        });
+        setHighlights(newHighlights);
+      });
+      return () => unsubscribe();
+    };
+
+    fetchHighlights();
+    
+    if (selectedBook && selectedChapter) {
+      localStorage.setItem('gbp_last_ref', JSON.stringify({ 
+        b: selectedBook, 
+        c: selectedChapter, 
+        time: Date.now()
+      }));
+    }
+  }, [selectedBook, selectedChapter]);
+
+  const toggleHighlight = async (verseNum: number, colorId: string | null) => {
+    const docId = `h_${selectedBook}_${selectedChapter}_${verseNum}`;
+    const docRef = doc(db, "highlights", docId);
+
+    if (!colorId && !highlights[verseNum]?.underline) {
+      await deleteDoc(docRef);
+    } else {
+      await setDoc(docRef, {
+        bookId: selectedBook,
+        chapter: selectedChapter,
+        verse: verseNum,
+        color: colorId || highlights[verseNum]?.color || 'yellow',
+        underline: highlights[verseNum]?.underline || false,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+  };
+
+  const toggleUnderline = async (verseNum: number) => {
+    const docId = `h_${selectedBook}_${selectedChapter}_${verseNum}`;
+    const docRef = doc(db, "highlights", docId);
+    await setDoc(docRef, {
+      bookId: selectedBook,
+      chapter: selectedChapter,
+      verse: verseNum,
+      color: highlights[verseNum]?.color || 'yellow',
+      underline: !highlights[verseNum]?.underline,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  };
 
   const toggleVersion = (id: string) => {
     setActiveVersions(prev => 
@@ -277,35 +340,100 @@ export default function ReadingMode() {
               <div className="space-y-8">
                 {currentVerses(versionId).length > 0 ? (
                   currentVerses(versionId).map((v) => (
-                    <div key={v.v} id={`verse-${v.v}`} className="group relative">
+                    <div 
+                      key={v.v} 
+                      id={`verse-${v.v}`} 
+                      className={cn(
+                        "group relative p-2 rounded-2xl transition-all duration-300",
+                        selectedVerse === v.v ? "bg-gray-50 ring-1 ring-gray-100" : "hover:bg-gray-50/30",
+                        highlights[v.v]?.color && COLORS.find(c => c.id === highlights[v.v].color)?.bg
+                      )}
+                      onClick={() => setSelectedVerse(selectedVerse === v.v ? null : v.v)}
+                    >
                       <div className="flex gap-4">
-                        <span className="text-xs font-bold text-[var(--color-secondary)] mt-1.5 shrink-0 w-6 text-right">
+                        <span className={cn(
+                          "text-xs font-bold mt-2 shrink-0 w-6 text-right",
+                          highlights[v.v]?.color ? "text-gray-600" : "text-[var(--color-secondary)]"
+                        )}>
                           {v.v}
                         </span>
-                        <p 
-                          className={cn(
-                            "bible-text text-lg md:text-xl leading-[2] text-gray-800",
-                            versionId === 'JOU' ? "japanese-content" : ""
+                        <div className="flex flex-col gap-2 flex-1">
+                          <p 
+                            className={cn(
+                              "bible-text text-lg md:text-xl leading-[2] text-gray-800",
+                              versionId === 'JOU' ? "japanese-content" : "",
+                              highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : ""
+                            )}
+                            dangerouslySetInnerHTML={{ __html: v.t }}
+                          />
+                          
+                          {/* Highlight Toolbar */}
+                          {selectedVerse === v.v && (
+                            <div className="flex items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl shadow-lg border border-gray-100">
+                                {COLORS.map(color => (
+                                  <button
+                                    key={color.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleHighlight(v.v, highlights[v.v]?.color === color.id ? null : color.id);
+                                    }}
+                                    className={cn(
+                                      "w-6 h-6 rounded-full border-2 transition-transform hover:scale-110",
+                                      color.bg,
+                                      highlights[v.v]?.color === color.id ? "border-gray-800 scale-110" : "border-transparent"
+                                    )}
+                                  />
+                                ))}
+                                <div className="w-px h-4 bg-gray-100 mx-1" />
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleUnderline(v.v);
+                                  }}
+                                  className={cn(
+                                    "px-3 py-1 rounded-lg text-xs font-bold border transition-colors",
+                                    highlights[v.v]?.underline 
+                                      ? "bg-gray-800 text-white border-gray-800" 
+                                      : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"
+                                  )}
+                                >
+                                  U
+                                </button>
+                              </div>
+                              
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleShare(v);
+                                  }}
+                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-[var(--color-secondary)] transition-colors"
+                                >
+                                  <Share2 size={16} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowCommentary(true);
+                                  }}
+                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-[var(--color-secondary)] transition-colors"
+                                >
+                                  <MessageSquare size={16} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSaveVerse(selectedBook, selectedChapter, v.v, v.t);
+                                  }}
+                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-red-500 transition-colors"
+                                >
+                                  <Heart size={16} fill={savedVerses.includes(`${selectedBook}_${selectedChapter}_${v.v}`) ? "currentColor" : "none"} />
+                                </button>
+                              </div>
+                            </div>
                           )}
-                          dangerouslySetInnerHTML={{ __html: v.t }}
-                        />
-                      </div>
-                      
-                      {/* Verse Actions (Hover) */}
-                      <div className="absolute -right-2 top-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur rounded-full border p-1 shadow-sm z-10">
-                        <button 
-                          className={cn(
-                            "p-2 transition-colors",
-                            savedVerses.includes(`${selectedBook}_${selectedChapter}_${v.v}`) 
-                              ? "text-red-500 hover:text-red-600" 
-                              : "text-gray-400 hover:text-[var(--color-secondary)]"
-                          )}
-                          onClick={() => toggleSaveVerse(selectedBook, selectedChapter, v.v, v.t)}
-                        >
-                          <Heart size={14} fill={savedVerses.includes(`${selectedBook}_${selectedChapter}_${v.v}`) ? "currentColor" : "none"}/>
-                        </button>
-                        <button className="p-2 hover:text-[var(--color-secondary)]" onClick={() => setShowCommentary(true)}><MessageSquare size={14}/></button>
-                        <button className="p-2 hover:text-[var(--color-secondary)]" onClick={() => handleShare(v)}><Share2 size={14}/></button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -380,14 +508,14 @@ export default function ReadingMode() {
               {isCommentaryLoading ? (
                 <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-4">
                   <Loader2 className="animate-spin" size={24} />
-                  <p className="text-sm">매튜 헨리 주석을 불러오는 중...</p>
+                  <p className="text-sm">주석을 불러오는 중...</p>
                 </div>
               ) : commentaryData ? (
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <div className="h-px flex-1 bg-gray-100"></div>
                     <span className="text-[var(--color-secondary)] font-black text-[10px] tracking-[0.2em] uppercase">
-                      {commentaryData.commentary?.[0]?.verses?.includes('1') ? 'Hokmah / Chokmah' : 'Commentary'}
+                      Chokmah Commentary
                     </span>
                     <div className="h-px flex-1 bg-gray-100"></div>
                   </div>
@@ -406,7 +534,7 @@ export default function ReadingMode() {
                         />
                       </div>
                     ))}
-                    {!commentaryData.commentary && (
+                    {!commentaryData.commentary?.length && (
                       <p className="text-gray-500 text-sm italic text-center py-12">주석 내용이 없습니다.</p>
                     )}
                   </div>
@@ -433,4 +561,3 @@ export default function ReadingMode() {
     </div>
   );
 }
-
