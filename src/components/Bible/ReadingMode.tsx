@@ -3,6 +3,9 @@ import { ChevronRight, ChevronLeft, Columns, LayoutList, Share2, Heart, MessageS
 import { BOOKS, BIBLE_VERSIONS } from '../../data/mockData';
 import BibleSearch from './BibleSearch';
 import BibleSelector from './BibleSelector';
+import BibleSettings from './BibleSettings';
+import NoteEditor from './NoteEditor';
+import { Type, Edit3, StickyNote } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -27,7 +30,24 @@ export default function ReadingMode() {
   const [savedVerses, setSavedVerses] = useState<string[]>([]);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
   const [highlights, setHighlights] = useState<Record<string, { color: string, underline: boolean }>>({});
+  const [notes, setNotes] = useState<Record<string, boolean>>({});
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
+
+  // Appearance States
+  const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('gbp_font_size')) || 18);
+  const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>(() => (localStorage.getItem('gbp_theme') as any) || 'light');
+  const [lineHeight, setLineHeight] = useState(() => Number(localStorage.getItem('gbp_line_height')) || 2.0);
+  const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>(() => (localStorage.getItem('gbp_font_family') as any) || 'sans');
+
+  // Persistence of settings
+  useEffect(() => {
+    localStorage.setItem('gbp_font_size', fontSize.toString());
+    localStorage.setItem('gbp_theme', theme);
+    localStorage.setItem('gbp_line_height', lineHeight.toString());
+    localStorage.setItem('gbp_font_family', fontFamily);
+  }, [fontSize, theme, lineHeight, fontFamily]);
 
   // Memoized color map
   const COLORS = [
@@ -189,6 +209,24 @@ export default function ReadingMode() {
 
     fetchHighlights();
     
+    // Fetch Notes indicators for current chapter
+    const fetchNotes = async () => {
+      const q = query(
+        collection(db, "notes"),
+        where("bookId", "==", selectedBook),
+        where("chapter", "==", selectedChapter)
+      );
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const newNotes: any = {};
+        snapshot.docs.forEach(doc => {
+          newNotes[doc.data().verse] = true;
+        });
+        setNotes(newNotes);
+      });
+      return unsubscribe;
+    };
+    const unsubscribeNotes = fetchNotes();
+
     if (selectedBook && selectedChapter) {
       localStorage.setItem('gbp_last_ref', JSON.stringify({ 
         b: selectedBook, 
@@ -255,10 +293,19 @@ export default function ReadingMode() {
 
   const currentBook = BOOKS.find(b => b.id === selectedBook);
 
+  const themeClasses = {
+    light: "bg-white text-gray-800",
+    sepia: "bg-[#f4ecd8] text-[#5b4636]",
+    dark: "bg-[#1a1a1a] text-gray-300"
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white relative">
+    <div className={cn("flex flex-col h-full relative transition-colors duration-500", themeClasses[theme])}>
       {/* Top Controls - Unified sticky header */}
-      <div className="sticky top-0 z-[60] bg-white border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+      <div className={cn(
+        "sticky top-0 z-[60] border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm transition-colors",
+        theme === 'dark' ? "bg-[#1a1a1a] border-gray-800" : (theme === 'sepia' ? "bg-[#f4ecd8] border-[#d3c1a3]" : "bg-white border-gray-100")
+      )}>
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsSelectorOpen(true)}
@@ -293,6 +340,13 @@ export default function ReadingMode() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsSettingsOpen(true)}
+            className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"
+            title="보기 설정"
+          >
+            <Type size={20} />
+          </button>
           <button 
             onClick={() => setShowSearch(true)}
             className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"
@@ -365,10 +419,16 @@ export default function ReadingMode() {
                         <div className="flex flex-col gap-2 flex-1">
                           <p 
                             className={cn(
-                              "bible-text text-lg md:text-xl leading-[2] text-gray-800",
+                              "bible-text transition-all duration-300",
                               versionId === 'JOU' ? "japanese-content" : "",
-                              highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : ""
+                              highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : "",
+                              fontFamily === 'serif' ? 'font-serif' : 'font-sans'
                             )}
+                            style={{ 
+                              fontSize: `${fontSize}px`,
+                              lineHeight: lineHeight,
+                              color: theme === 'dark' ? '#d1d5db' : (theme === 'sepia' ? '#5b4636' : '#1f2937')
+                            }}
                             dangerouslySetInnerHTML={{ __html: v.t }}
                           />
                           
@@ -411,6 +471,16 @@ export default function ReadingMode() {
                                 <button 
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setIsNoteEditorOpen(true);
+                                  }}
+                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-[var(--color-secondary)] transition-colors"
+                                  title="메모하기"
+                                >
+                                  <Edit3 size={16} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     handleShare(v);
                                   }}
                                   className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-[var(--color-secondary)] transition-colors"
@@ -439,6 +509,13 @@ export default function ReadingMode() {
                             </div>
                           )}
                         </div>
+
+                        {/* Note Indicator */}
+                        {notes[v.v] && (
+                          <div className="absolute top-2 right-2 text-[var(--color-secondary)]">
+                            <StickyNote size={14} fill="currentColor" fillOpacity={0.2} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -564,27 +641,32 @@ export default function ReadingMode() {
         </div>
       )}
 
-      {/* Bible Selector Modal */}
-      <BibleSelector 
-        isOpen={isSelectorOpen}
-        onClose={() => setIsSelectorOpen(false)}
-        currentBook={selectedBook}
-        currentChapter={selectedChapter}
-        maxVerse={currentVerses(activeVersions[0]).length || 80}
-        onSelect={(bookId, chap, vers) => {
-          setSelectedBook(bookId);
-          setSelectedChapter(chap);
-          setIsSelectorOpen(false);
-          // Scroll to verse after a short delay to allow data to load
-          setTimeout(() => {
-            const element = document.getElementById(`verse-${vers}`);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              setSelectedVerse(vers);
-            }
-          }, 800);
-        }}
+      {/* Bible Settings Modal */}
+      <BibleSettings 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
+        theme={theme}
+        setTheme={setTheme}
+        lineHeight={lineHeight}
+        setLineHeight={setLineHeight}
+        fontFamily={fontFamily}
+        setFontFamily={setFontFamily}
       />
+
+      {/* Note Editor Modal */}
+      {selectedVerse && (
+        <NoteEditor 
+          isOpen={isNoteEditorOpen}
+          onClose={() => setIsNoteEditorOpen(false)}
+          bookId={selectedBook}
+          bookName={currentBook?.name || ''}
+          chapter={selectedChapter}
+          verse={selectedVerse}
+          verseText={currentVerses(activeVersions[0]).find(v => v.v === selectedVerse)?.t || ''}
+        />
+      )}
     </div>
   );
 }
