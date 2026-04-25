@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/global-bible-pro/sw.js', { scope: '/global-bible-pro/' })})}
