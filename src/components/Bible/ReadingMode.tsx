@@ -122,17 +122,36 @@ export default function ReadingMode() {
     const fetchCommentary = async () => {
       if (!showCommentary) return;
 
-      const book = BOOKS.find(b => b.id === selectedBook);
-      if (!book) return;
-
       setIsCommentaryLoading(true);
       try {
-        // HelloAO API uses the same numeric book ID (1-66)
-        const response = await fetch(`https://bible.helloao.org/api/c/matthew-henry/${book.jsonId}/${selectedChapter}.json`);
+        // Try local Chokmah first
+        const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+        const response = await fetch(`${baseUrl}data/bible/chokmah.json`);
         if (response.ok) {
-          setCommentaryData(await response.json());
+          const allData = await response.json();
+          const book = BOOKS.find(b => b.id === selectedBook);
+          if (book) {
+            const chapData = allData.book[book.jsonId]?.chapter[selectedChapter.toString()];
+            if (chapData) {
+              // Convert our custom format to the UI's expected format
+              const formatted = Object.entries(chapData.verse).map(([v, content]: [string, any]) => ({
+                verses: v,
+                content: content.text
+              }));
+              setCommentaryData({ commentary: formatted });
+            } else {
+              setCommentaryData(null);
+            }
+          }
         } else {
-          setCommentaryData(null);
+          // Fallback to Matthew Henry API
+          const book = BOOKS.find(b => b.id === selectedBook);
+          const apiResponse = await fetch(`https://bible.helloao.org/api/c/matthew-henry/${book?.jsonId}/${selectedChapter}.json`);
+          if (apiResponse.ok) {
+            setCommentaryData(await apiResponse.json());
+          } else {
+            setCommentaryData(null);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch commentary:", error);
@@ -367,7 +386,9 @@ export default function ReadingMode() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <div className="h-px flex-1 bg-gray-100"></div>
-                    <span className="text-[var(--color-secondary)] font-black text-[10px] tracking-[0.2em] uppercase">Matthew Henry</span>
+                    <span className="text-[var(--color-secondary)] font-black text-[10px] tracking-[0.2em] uppercase">
+                      {commentaryData.commentary?.[0]?.verses?.includes('1') ? 'Hokmah / Chokmah' : 'Commentary'}
+                    </span>
                     <div className="h-px flex-1 bg-gray-100"></div>
                   </div>
                   

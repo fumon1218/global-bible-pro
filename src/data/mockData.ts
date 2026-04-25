@@ -78,6 +78,12 @@ export const BOOKS: BibleBook[] = [
 
 export const BIBLE_VERSIONS = [
   { id: 'KRV', name: '개역한글', lang: 'ko' },
+  { id: 'NKRV', name: '개역개정', lang: 'ko' },
+  { id: 'RNKSV', name: '새번역', lang: 'ko' },
+  { id: 'KKJV', name: '한글KJV', lang: 'ko' },
+  { id: 'NIV', name: 'NIV', lang: 'en' },
+  { id: 'NLT', name: 'NLT', lang: 'en' },
+  { id: 'NKJV', name: 'NKJV', lang: 'en' },
   { id: 'KJV', name: 'KJV', lang: 'en' },
   { id: 'JOU', name: '口語訳', lang: 'ja' },
 ];
