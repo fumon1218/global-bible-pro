@@ -7,7 +7,9 @@ import BibleSettings from './BibleSettings';
 import NoteEditor from './NoteEditor';
 import UserDashboard from './UserDashboard';
 import ReadingPlan from './ReadingPlan';
-import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon } from 'lucide-react';
+import VersionSelector from './VersionSelector';
+import ReadingProgress from './ReadingProgress';
+import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon, BookOpen, Headphones } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
@@ -22,7 +24,8 @@ interface Verse {
 export default function ReadingMode() {
   const [selectedBook, setSelectedBook] = useState('GEN');
   const [selectedChapter, setSelectedChapter] = useState(1);
-  const [activeVersions, setActiveVersions] = useState(['KRV']);
+  const [primaryVersion, setPrimaryVersion] = useState(() => localStorage.getItem('gbp_primary_version') || 'NKRV');
+  const [parallelVersion, setParallelVersion] = useState<string | null>(() => localStorage.getItem('gbp_parallel_version') || null);
   const [showCommentary, setShowCommentary] = useState(false);
   const [loadedData, setLoadedData] = useState<Record<string, any>>({});
   const [commentaryData, setCommentaryData] = useState<any>(null);
@@ -38,6 +41,8 @@ export default function ReadingMode() {
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
+  const [isVersionSelectorOpen, setIsVersionSelectorOpen] = useState(false);
+  const [isProgressOpen, setIsProgressOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Appearance States
@@ -52,7 +57,10 @@ export default function ReadingMode() {
     localStorage.setItem('gbp_theme', theme);
     localStorage.setItem('gbp_line_height', lineHeight.toString());
     localStorage.setItem('gbp_font_family', fontFamily);
-  }, [fontSize, theme, lineHeight, fontFamily]);
+    localStorage.setItem('gbp_primary_version', primaryVersion);
+    if (parallelVersion) localStorage.setItem('gbp_parallel_version', parallelVersion);
+    else localStorage.removeItem('gbp_parallel_version');
+  }, [fontSize, theme, lineHeight, fontFamily, primaryVersion, parallelVersion]);
 
   // Memoized color map
   const COLORS = [
@@ -115,7 +123,7 @@ export default function ReadingMode() {
   // Fetch Bible Data
   useEffect(() => {
     const fetchBibleData = async () => {
-      const versionsToFetch = activeVersions.filter(v => !loadedData[v]);
+      const versionsToFetch = [primaryVersion, parallelVersion].filter(v => v && !loadedData[v]) as string[];
       if (versionsToFetch.length === 0) return;
 
       setIsLoading(true);
@@ -136,7 +144,7 @@ export default function ReadingMode() {
     };
 
     fetchBibleData();
-  }, [activeVersions]);
+  }, [primaryVersion, parallelVersion]);
 
   // Handle global navigation
   useEffect(() => {
@@ -272,14 +280,6 @@ export default function ReadingMode() {
     }, { merge: true });
   };
 
-  const toggleVersion = (id: string) => {
-    setActiveVersions(prev => 
-      prev.includes(id) 
-        ? (prev.length > 1 ? prev.filter(v => v !== id) : prev) 
-        : (prev.length < 3 ? [...prev, id] : [prev[1], prev[2], id])
-    );
-  };
-
   const currentVerses = (versionId: string): Verse[] => {
     const data = loadedData[versionId];
     if (!data) return [];
@@ -324,6 +324,27 @@ export default function ReadingMode() {
               <ChevronRight size={16} />
             </div>
           </button>
+
+          <button 
+            onClick={() => setIsVersionSelectorOpen(true)}
+            className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2.5 rounded-2xl shadow-lg hover:bg-black transition-all group"
+          >
+            <div className="flex flex-col items-start leading-none gap-1">
+              <span className="text-[10px] font-black opacity-50 uppercase tracking-widest">Version</span>
+              <div className="flex items-center gap-2">
+                 <span className="text-sm font-black">{BIBLE_VERSIONS.find(v => v.id === primaryVersion)?.name}</span>
+                 {parallelVersion && (
+                    <>
+                      <div className="w-px h-3 bg-white/20" />
+                      <span className="text-sm font-black text-indigo-400">{BIBLE_VERSIONS.find(v => v.id === parallelVersion)?.name}</span>
+                    </>
+                 )}
+              </div>
+            </div>
+            <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center text-white/40 group-hover:text-white transition-colors">
+              <BookOpen size={14} />
+            </div>
+          </button>
           
           <div className="hidden md:flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-100">
             <button 
@@ -363,9 +384,9 @@ export default function ReadingMode() {
           <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block" />
 
           <button 
-            onClick={() => setIsPlanOpen(true)}
-            className="hidden md:flex p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"
-            title="통독 계획"
+            onClick={() => setIsProgressOpen(true)}
+            className="hidden md:flex p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"
+            title="성경 통독 여정"
           >
             <Calendar size={20} />
           </button>
@@ -376,21 +397,13 @@ export default function ReadingMode() {
           >
             <User size={20} />
           </button>
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-2xl">
-            {BIBLE_VERSIONS.map(v => (
-              <button
-                key={v.id}
-                onClick={() => toggleVersion(v.id)}
-                className={cn(
-                  "px-4 py-1.5 rounded-xl text-xs font-bold transition-all",
-                  activeVersions.includes(v.id) 
-                    ? "bg-white text-[var(--color-primary)] shadow-sm" 
-                    : "text-gray-400 hover:text-gray-600"
-                )}
-              >
-                {v.name}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-2xl md:hidden">
+            <button
+               onClick={() => setIsVersionSelectorOpen(true)}
+               className="p-2 text-gray-600"
+            >
+               <BookOpen size={20} />
+            </button>
           </div>
         </div>
       </div>
@@ -405,15 +418,15 @@ export default function ReadingMode() {
         
         <div className={cn(
           "parallel-container p-6 md:p-12 min-w-full pt-20 md:pt-24",
-          activeVersions.length === 1 ? "pb-32" : ""
+          !parallelVersion ? "max-w-4xl mx-auto" : ""
         )}
         style={{
-          gridTemplateColumns: `repeat(${activeVersions.length}, minmax(300px, 1fr))`
+          gridTemplateColumns: parallelVersion ? `repeat(2, minmax(300px, 1fr))` : `1fr`
         }}>
-          {activeVersions.map(versionId => (
+          {[primaryVersion, parallelVersion].filter(Boolean).map((versionId: any) => (
             <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
               <div className="sticky top-[72px] bg-white z-[50] py-4 mb-6 border-b border-gray-100 flex items-center justify-between px-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] px-3 py-1 bg-gray-50 rounded-full">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 px-3 py-1 bg-indigo-50 rounded-full">
                   {BIBLE_VERSIONS.find(v => v.id === versionId)?.name}
                 </span>
               </div>
@@ -573,7 +586,7 @@ export default function ReadingMode() {
               </div>
               <div className="flex-1 overflow-hidden">
                 <BibleSearch 
-                  activeVersion={activeVersions[0]} 
+                  activeVersion={primaryVersion} 
                   onSelectResult={(bookId, chap, vers) => {
                     setSelectedBook(bookId);
                     setSelectedChapter(chap);
@@ -686,7 +699,7 @@ export default function ReadingMode() {
           bookName={currentBook?.name || ''}
           chapter={selectedChapter}
           verse={selectedVerse}
-          verseText={currentVerses(activeVersions[0]).find(v => v.v === selectedVerse)?.t || ''}
+          verseText={currentVerses(primaryVersion).find(v => v.v === selectedVerse)?.t || ''}
         />
       )}
 
@@ -696,7 +709,7 @@ export default function ReadingMode() {
         onClose={() => setIsSelectorOpen(false)}
         currentBook={selectedBook}
         currentChapter={selectedChapter}
-        maxVerse={currentVerses(activeVersions[0]).length || 80}
+        maxVerse={currentVerses(primaryVersion).length || 80}
         onSelect={(bookId, chap, vers) => {
           setSelectedBook(bookId);
           setSelectedChapter(chap);
@@ -738,6 +751,27 @@ export default function ReadingMode() {
           setSelectedBook(b);
           setSelectedChapter(c);
           setIsPlanOpen(false);
+        }}
+      />
+
+      {/* Version Selector */}
+      <VersionSelector 
+        isOpen={isVersionSelectorOpen}
+        onClose={() => setIsVersionSelectorOpen(false)}
+        primaryVersion={primaryVersion}
+        parallelVersion={parallelVersion}
+        onSelectPrimary={setPrimaryVersion}
+        onSelectParallel={setParallelVersion}
+      />
+
+      {/* Reading Progress Dashboard */}
+      <ReadingProgress 
+        isOpen={isProgressOpen}
+        onClose={() => setIsProgressOpen(false)}
+        onNavigate={(b, c) => {
+          setSelectedBook(b);
+          setSelectedChapter(c);
+          setIsProgressOpen(false);
         }}
       />
     </div>
