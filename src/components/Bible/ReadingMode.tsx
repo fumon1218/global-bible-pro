@@ -82,7 +82,7 @@ export default function ReadingMode() {
           const baseUrl = import.meta.env.BASE_URL.endsWith('/') 
             ? import.meta.env.BASE_URL 
             : `${import.meta.env.BASE_URL}/`;
-          const response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json`);
+          const response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json?t=${Date.now()}`);
           if (response.ok) {
             const data = await response.json();
             setLoadedData(prev => ({ ...prev, [vId]: data }));
@@ -124,9 +124,9 @@ export default function ReadingMode() {
 
       setIsCommentaryLoading(true);
       try {
-        // Try local Chokmah first
+        // Try local Chokmah first with cache busting
         const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
-        const response = await fetch(`${baseUrl}data/bible/chokmah.json`);
+        const response = await fetch(`${baseUrl}data/bible/chokmah.json?t=${Date.now()}`);
         if (response.ok) {
           const allData = await response.json();
           const book = BOOKS.find(b => b.id === selectedBook);
@@ -260,7 +260,7 @@ export default function ReadingMode() {
         )}
         
         <div className={cn(
-          "parallel-container p-6 md:p-12 min-w-full pt-8",
+          "parallel-container p-6 md:p-12 min-w-full pt-20 md:pt-24",
           activeVersions.length === 1 ? "pb-32" : ""
         )}
         style={{
