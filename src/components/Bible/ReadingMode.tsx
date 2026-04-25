@@ -193,7 +193,7 @@ export default function ReadingMode() {
   return (
     <div className="flex flex-col h-full bg-white relative">
       {/* Top Controls - Unified sticky header */}
-      <div className="sticky top-0 z-40 bg-white/98 backdrop-blur-md border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+      <div className="sticky top-0 z-[60] bg-white border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
         <div className="flex items-center gap-4">
           <select 
             value={selectedBook}
@@ -260,7 +260,7 @@ export default function ReadingMode() {
         )}
         
         <div className={cn(
-          "parallel-container p-4 md:p-12 min-w-full",
+          "parallel-container p-6 md:p-12 min-w-full pt-8",
           activeVersions.length === 1 ? "pb-32" : ""
         )}
         style={{
@@ -268,7 +268,7 @@ export default function ReadingMode() {
         }}>
           {activeVersions.map(versionId => (
             <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
-              <div className="sticky top-[72px] md:top-[80px] bg-white z-30 py-4 mb-6 border-b border-gray-50 flex items-center justify-between px-2">
+              <div className="sticky top-[72px] bg-white z-[50] py-4 mb-6 border-b border-gray-100 flex items-center justify-between px-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-secondary)] px-3 py-1 bg-gray-50 rounded-full">
                   {BIBLE_VERSIONS.find(v => v.id === versionId)?.name}
                 </span>
@@ -425,7 +425,7 @@ export default function ReadingMode() {
             </div>
             
             <div className="p-6 bg-gray-50 text-[10px] text-gray-400 border-t">
-              Data provided by HelloAO API & Matthew Henry Commentary.
+              Data provided by local Hokmah Commentary & HelloAO API (Matthew Henry).
             </div>
           </div>
         </div>
