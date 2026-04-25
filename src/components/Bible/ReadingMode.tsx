@@ -690,6 +690,28 @@ export default function ReadingMode() {
         />
       )}
 
+      {/* Bible Selector Modal */}
+      <BibleSelector 
+        isOpen={isSelectorOpen}
+        onClose={() => setIsSelectorOpen(false)}
+        currentBook={selectedBook}
+        currentChapter={selectedChapter}
+        maxVerse={currentVerses(activeVersions[0]).length || 80}
+        onSelect={(bookId, chap, vers) => {
+          setSelectedBook(bookId);
+          setSelectedChapter(chap);
+          setIsSelectorOpen(false);
+          // Scroll to verse after a short delay to allow data to load
+          setTimeout(() => {
+            const element = document.getElementById(`verse-${vers}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setSelectedVerse(vers);
+            }
+          }, 800);
+        }}
+      />
+
       {/* User Dashboard */}
       <UserDashboard 
         isOpen={isDashboardOpen}
