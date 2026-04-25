@@ -45,6 +45,31 @@ export default function ReadingMode() {
     localStorage.setItem('gbp_saved_verses', JSON.stringify(newSaved));
   };
 
+  const handleShare = async (verse: Verse) => {
+    const book = BOOKS.find(b => b.id === selectedBook);
+    // Strip HTML tags for clean sharing
+    const cleanText = verse.t.replace(/<[^>]*>?/gm, '');
+    const text = `${book?.name} ${selectedChapter}:${verse.v}\n\n${cleanText}\n\n- Global Bible Pro`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: '성경 말씀 공유',
+          text: text,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('클립보드에 복사되었습니다.');
+      } catch (error) {
+        alert('공유 기능을 사용할 수 없습니다.');
+      }
+    }
+  };
+
   // Fetch Bible Data
   useEffect(() => {
     const fetchBibleData = async () => {
@@ -148,8 +173,8 @@ export default function ReadingMode() {
 
   return (
     <div className="flex flex-col h-full bg-white relative">
-      {/* Top Controls */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+      {/* Top Controls - Fixed height for better sticky alignment */}
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 min-h-[72px]">
         <div className="flex items-center gap-4">
           <select 
             value={selectedBook}
@@ -223,8 +248,8 @@ export default function ReadingMode() {
           gridTemplateColumns: `repeat(${activeVersions.length}, minmax(300px, 1fr))`
         }}>
           {activeVersions.map(versionId => (
-            <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
-              <div className="flex items-center justify-between mb-4 sticky top-[80px] bg-white/90 py-2 z-10">
+            <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
+              <div className="flex items-center justify-between sticky top-[72px] md:top-[80px] bg-white/95 py-3 z-10 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] px-2 -mx-2">
                 <span className="text-xs font-black uppercase tracking-widest text-[var(--color-secondary)] px-2 bg-gray-50 rounded">
                   {BIBLE_VERSIONS.find(v => v.id === versionId)?.name}
                 </span>
@@ -261,7 +286,7 @@ export default function ReadingMode() {
                           <Heart size={14} fill={savedVerses.includes(`${selectedBook}_${selectedChapter}_${v.v}`) ? "currentColor" : "none"}/>
                         </button>
                         <button className="p-2 hover:text-[var(--color-secondary)]" onClick={() => setShowCommentary(true)}><MessageSquare size={14}/></button>
-                        <button className="p-2 hover:text-[var(--color-secondary)]"><Share2 size={14}/></button>
+                        <button className="p-2 hover:text-[var(--color-secondary)]" onClick={() => handleShare(v)}><Share2 size={14}/></button>
                       </div>
                     </div>
                   ))
