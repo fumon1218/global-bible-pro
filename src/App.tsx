@@ -6,6 +6,7 @@ import ReadingMode from './components/Bible/ReadingMode';
 import MemoryMode from './components/Memory/MemoryMode';
 import BibleSearch from './components/Bible/BibleSearch';
 import TrackerMode from './components/Tracker/TrackerMode';
+import { ReadingProvider } from './contexts/ReadingContext';
 
 const SearchView = ({ onSelect }: { onSelect: (b: string, c: number, v: number) => void }) => (
   <div className="h-full flex flex-col bg-white">
@@ -66,100 +67,99 @@ export default function App() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg)]">
-      {/* Sidebar for PC */}
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-[var(--color-primary)] text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
-        <div className="flex flex-col h-full p-6">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-[var(--color-secondary)] rounded-xl flex items-center justify-center">
-              <Book className="text-[var(--color-primary)]" />
+    <ReadingProvider>
+      <div className="flex min-h-screen bg-[var(--color-bg)]">
+        {/* Sidebar for PC */}
+        <aside className={cn(
+          "fixed inset-y-0 left-0 z-50 w-64 bg-[var(--color-primary)] text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}>
+          <div className="flex flex-col h-full p-6">
+            <div className="flex items-center gap-3 mb-12">
+              <div className="w-10 h-10 bg-[var(--color-secondary)] rounded-xl flex items-center justify-center">
+                <Book className="text-[var(--color-primary)]" />
+              </div>
+              <h1 className="text-xl font-bold premium-heading tracking-tight">Global Bible Pro</h1>
             </div>
-            <h1 className="text-xl font-bold premium-heading tracking-tight">Global Bible Pro</h1>
-          </div>
 
-          <nav className="flex-1 space-y-2">
-            {navItems.map((item) => (
+            <nav className="flex-1 space-y-2">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setView(item.id as ViewMode);
+                    setIsSidebarOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200",
+                    view === item.id 
+                      ? "bg-[var(--color-secondary)] text-[var(--color-primary)] font-bold shadow-lg" 
+                      : "text-white/70 hover:bg-white/10"
+                  )}
+                >
+                  <item.icon size={20} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
               <button
-                key={item.id}
-                onClick={() => {
-                  setView(item.id as ViewMode);
-                  setIsSidebarOpen(false);
+                onClick={async () => {
+                  const shareData = {
+                    title: 'Global Bible Journey Pro',
+                    text: '전 세계 성경 통독의 동반자, 프리미엄 성경 통독 플랫폼 Global Bible Pro에 초대합니다!',
+                    url: 'https://fumon1218.github.io/global-bible-pro/'
+                  };
+                  if (navigator.share) {
+                    try { await navigator.share(shareData); } catch (e) {}
+                  } else {
+                    await navigator.clipboard.writeText(shareData.url);
+                    alert('앱 링크가 복사되었습니다! 친구에게 전달해보세요.');
+                  }
                 }}
-                className={cn(
-                  "w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-200",
-                  view === item.id 
-                    ? "bg-[var(--color-secondary)] text-[var(--color-primary)] font-bold shadow-lg" 
-                    : "text-white/70 hover:bg-white/10"
-                )}
+                className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl bg-white/5 text-white/70 hover:bg-white/10 transition-all border border-white/5 active:scale-95"
               >
-                <item.icon size={20} />
-                <span>{item.label}</span>
+                <Share2 size={18} className="text-[var(--color-secondary)]" />
+                <span className="text-sm font-bold">친구에게 앱 공유하기</span>
               </button>
-            ))}
-          </nav>
+              <p className="text-[10px] font-bold text-white/20 tracking-widest px-1 uppercase">© 2026 Global Bible Pro</p>
+            </div>
+          </div>
+        </aside>
 
-          <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
-            <button
-              onClick={async () => {
-                const shareData = {
-                  title: 'Global Bible Journey Pro',
-                  text: '전 세계 성경 통독의 동반자, 프리미엄 성경 통독 플랫폼 Global Bible Pro에 초대합니다!',
-                  url: 'https://fumon1218.github.io/global-bible-pro/'
-                };
-                if (navigator.share) {
-                  try { await navigator.share(shareData); } catch (e) {}
-                } else {
-                  await navigator.clipboard.writeText(shareData.url);
-                  alert('앱 링크가 복사되었습니다! 친구에게 전달해보세요.');
-                }
-              }}
-              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl bg-white/5 text-white/70 hover:bg-white/10 transition-all border border-white/5 active:scale-95"
-            >
-              <Share2 size={18} className="text-[var(--color-secondary)]" />
-              <span className="text-sm font-bold">친구에게 앱 공유하기</span>
-            </button>
-            <p className="text-[10px] font-bold text-white/20 tracking-widest px-1 uppercase">© 2026 Global Bible Pro</p>
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col min-w-0 relative">
+          <main className="flex-1 overflow-y-auto no-scrollbar relative">
+            {view === 'READING' && <ReadingMode onOpenSidebar={() => setIsSidebarOpen(true)} />}
+            {view === 'MEMORY' && <MemoryMode />}
+            {view === 'SEARCH' && (
+              <SearchView onSelect={(b, c, v) => {
+                setView('READING');
+                localStorage.setItem('gbp_last_ref', JSON.stringify({ b, c, v }));
+                window.dispatchEvent(new Event('gbp_navigate'));
+              }} />
+            )}
+            {view === 'TRACKER' && <TrackerMode />}
+            {view === 'SETTINGS' && <SettingsView />}
+          </main>
+
+          {/* Truly Fixed Version Bubble at Global Level */}
+          <div className="fixed bottom-6 right-6 z-[9999] pointer-events-none">
+             <div className="px-5 py-2 bg-slate-900/10 backdrop-blur-md rounded-full border border-slate-900/10 shadow-lg animate-in fade-in slide-in-from-bottom duration-1000">
+                <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Version 1.2.7 Premium</span>
+             </div>
           </div>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        <main className="flex-1 overflow-y-auto no-scrollbar relative">
-          {view === 'READING' && <ReadingMode onOpenSidebar={() => setIsSidebarOpen(true)} />}
-          {view === 'MEMORY' && <MemoryMode />}
-          {view === 'SEARCH' && (
-            <SearchView onSelect={(b, c, v) => {
-              setView('READING');
-              // This part needs a way to pass the selection to ReadingMode
-              // For now, we'll assume ReadingMode handles internal state
-              // In a real app, we'd use a Context or a shared state.
-              localStorage.setItem('gbp_last_ref', JSON.stringify({ b, c, v }));
-              window.dispatchEvent(new Event('gbp_navigate'));
-            }} />
-          )}
-          {view === 'TRACKER' && <TrackerMode />}
-          {view === 'SETTINGS' && <SettingsView />}
-        </main>
-
-        {/* Truly Fixed Version Bubble at Global Level */}
-        <div className="fixed bottom-6 right-6 z-[9999] pointer-events-none">
-           <div className="px-5 py-2 bg-slate-900/10 backdrop-blur-md rounded-full border border-slate-900/10 shadow-lg animate-in fade-in slide-in-from-bottom duration-1000">
-              <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Version 1.2.7 Premium</span>
-           </div>
-        </div>
+        {/* Global Mobile Overlay for Sidebar */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998] lg:hidden animate-in fade-in duration-300"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
       </div>
-
-      {/* Global Mobile Overlay for Sidebar */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998] lg:hidden animate-in fade-in duration-300"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-    </div>
+    </ReadingProvider>
   );
 }

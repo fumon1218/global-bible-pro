@@ -11,7 +11,8 @@ import VersionSelector from './VersionSelector';
 import ReadingProgress from './ReadingProgress';
 import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon, BookOpen, Headphones, Settings, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { db } from '../../lib/firebase';
+import { db, auth } from '../../lib/firebase';
+import { useReading } from '../../contexts/ReadingContext';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 interface Verse {
@@ -26,6 +27,7 @@ interface ReadingModeProps {
 }
 
 export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
+  const { completedChapters, toggleChapter } = useReading();
   const [selectedBook, setSelectedBook] = useState('GEN');
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [primaryVersion, setPrimaryVersion] = useState(() => localStorage.getItem('gbp_primary_version') || 'NKRV');
@@ -145,18 +147,11 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     }
   };
 
-  const handleCheckAndNext = () => {
+  const handleCheckAndNext = async () => {
     const key = `${selectedBook}_${selectedChapter}`;
-    const completed = JSON.parse(localStorage.getItem('gbp_completed_chapters') || '{}');
-    const logs = JSON.parse(localStorage.getItem('gbp_reading_logs') || '{}');
-    const today = new Date().toISOString().split('T')[0];
     
-    if (!completed[key]) {
-      completed[key] = true;
-      logs[today] = (logs[today] || 0) + 1;
-      localStorage.setItem('gbp_completed_chapters', JSON.stringify(completed));
-      localStorage.setItem('gbp_reading_logs', JSON.stringify(logs));
-      setTodayLogCount(logs[today]);
+    if (!completedChapters[key]) {
+      await toggleChapter(selectedBook, selectedChapter);
     }
 
     const currentBookInfo = BOOKS.find(b => b.id === selectedBook);

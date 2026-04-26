@@ -4,6 +4,8 @@ import { db } from '../../lib/firebase';
 import { collection, query, onSnapshot, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { cn } from '../../lib/utils';
 import { BOOKS } from '../../data/mockData';
+import { useReading } from '../../contexts/ReadingContext';
+import { LogOut, LogIn } from 'lucide-react';
 
 interface UserDashboardProps {
   isOpen: boolean;
@@ -12,6 +14,7 @@ interface UserDashboardProps {
 }
 
 export default function UserDashboard({ isOpen, onClose, onNavigate }: UserDashboardProps) {
+  const { user, login, logout } = useReading();
   const [activeTab, setActiveTab] = useState<'highlights' | 'notes' | 'saved'>('notes');
   const [highlights, setHighlights] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
@@ -89,7 +92,31 @@ export default function UserDashboard({ isOpen, onClose, onNavigate }: UserDashb
             <h2 className="text-2xl font-black text-gray-900 premium-heading">마이 페이지</h2>
             <p className="text-xs text-gray-400 mt-1 font-medium italic">나의 신앙 기록을 관리합니다</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {user ? (
+               <div className="flex items-center gap-3 pr-4 border-r border-gray-100">
+                  <div className="text-right hidden sm:block">
+                     <p className="text-sm font-black text-gray-900">{user.displayName}</p>
+                     <p className="text-[10px] text-gray-400 font-bold">{user.email}</p>
+                  </div>
+                  <img src={user.photoURL || ''} alt="profile" className="w-10 h-10 rounded-2xl border-2 border-gray-100 shadow-sm" />
+                  <button 
+                    onClick={() => logout()}
+                    className="p-2.5 bg-gray-50 text-gray-400 hover:text-red-500 rounded-xl transition-all"
+                    title="로그아웃"
+                  >
+                    <LogOut size={20} />
+                  </button>
+               </div>
+            ) : (
+               <button 
+                 onClick={() => login()}
+                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all shadow-md active:scale-95 text-sm font-bold"
+               >
+                 <LogIn size={18} />
+                 <span>구글 로그인</span>
+               </button>
+            )}
             <button 
               onClick={handleExport}
               className="p-2.5 bg-gray-50 text-gray-400 hover:text-[var(--color-secondary)] hover:bg-white border border-gray-100 rounded-xl transition-all shadow-sm"

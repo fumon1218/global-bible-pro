@@ -9,9 +9,10 @@ interface ReadingProgressProps {
   onNavigate: (bookId: string, chapter: number) => void;
 }
 
+import { useReading } from '../../contexts/ReadingContext';
+
 export default function ReadingProgress({ isOpen, onClose, onNavigate }: ReadingProgressProps) {
-  const [completedChapters, setCompletedChapters] = useState<Record<string, boolean>>({});
-  const [readingLogs, setReadingLogs] = useState<Record<string, number>>({});
+  const { completedChapters, readingLogs, toggleChapter } = useReading();
   const [lastRead, setLastRead] = useState({ b: 'GEN', c: 1 });
   const [goalDates, setGoalDates] = useState(() => {
     const saved = localStorage.getItem('gbp_goal_dates');
@@ -26,20 +27,8 @@ export default function ReadingProgress({ isOpen, onClose, onNavigate }: Reading
   // Sync data on mount and whenever it opens
   useEffect(() => {
     if (!isOpen) return;
-    
-    const loadData = () => {
-      const completed = JSON.parse(localStorage.getItem('gbp_completed_chapters') || '{}');
-      const logs = JSON.parse(localStorage.getItem('gbp_reading_logs') || '{}');
-      const last = JSON.parse(localStorage.getItem('gbp_last_ref') || '{"b": "GEN", "c": 1}');
-      
-      setCompletedChapters(completed);
-      setReadingLogs(logs);
-      setLastRead(last);
-    };
-
-    loadData();
-    window.addEventListener('storage', loadData);
-    return () => window.removeEventListener('storage', loadData);
+    const last = JSON.parse(localStorage.getItem('gbp_last_ref') || '{"b": "GEN", "c": 1}');
+    setLastRead(last);
   }, [isOpen]);
 
   // Calculate stats based on goals
@@ -75,32 +64,13 @@ export default function ReadingProgress({ isOpen, onClose, onNavigate }: Reading
 
   const totalReadLast7Days = last7Days.reduce((acc, curr) => acc + curr.count, 0);
 
-  const toggleChapter = (bookId: string, chapter: number) => {
-    const key = `${bookId}_${chapter}`;
-    const newCompleted = { ...completedChapters };
-    const newLogs = { ...readingLogs };
-    const today = new Date().toISOString().split('T')[0];
-    
-    if (newCompleted[key]) {
-      delete newCompleted[key];
-      newLogs[today] = Math.max(0, (newLogs[today] || 0) - 1);
-    } else {
-      newCompleted[key] = true;
-      newLogs[today] = (newLogs[today] || 0) + 1;
-    }
-    
-    setCompletedChapters(newCompleted);
-    setReadingLogs(newLogs);
-    localStorage.setItem('gbp_completed_chapters', JSON.stringify(newCompleted));
-    localStorage.setItem('gbp_reading_logs', JSON.stringify(newLogs));
-  };
 
   const handleReset = () => {
     if (!confirm('정말 모든 읽기 기록을 초기화하시겠습니까? (이 작업은 되돌릴 수 없습니다)')) return;
+    // Context version of reset will be needed if global reset is desired
     localStorage.removeItem('gbp_completed_chapters');
     localStorage.removeItem('gbp_reading_logs');
-    setCompletedChapters({});
-    setReadingLogs({});
+    window.location.reload(); // Quick way to clear state and reload
   };
 
   const saveGoal = (newGoal: any) => {
