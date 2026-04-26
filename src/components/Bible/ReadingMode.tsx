@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Columns, LayoutList, Share2, Heart, MessageSquare, X, Loader2, Search as SearchIcon } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Columns, LayoutList, Share2, Heart, MessageSquare, X, Loader2, Search as SearchIcon, Play, Pause, Square, Music } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { BOOKS, BIBLE_VERSIONS } from '../../data/mockData';
 import BibleSearch from './BibleSearch';
 import BibleSelector from './BibleSelector';
@@ -27,8 +28,11 @@ interface ReadingModeProps {
 }
 
 export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
+  const { t } = useTranslation();
   const { completedChapters, toggleChapter } = useReading();
   const [selectedBook, setSelectedBook] = useState('GEN');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioSource, setAudioSource] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [primaryVersion, setPrimaryVersion] = useState(() => localStorage.getItem('gbp_primary_version') || 'NKRV');
   const [parallelVersion, setParallelVersion] = useState<string | null>(() => localStorage.getItem('gbp_parallel_version') || null);
@@ -345,6 +349,14 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     })).sort((a, b) => a.v - b.v);
   };
 
+  const toggleAudio = () => {
+    setIsPlaying(!isPlaying);
+    // Future: Logic to play actual MP3 from API (e.g., wordproject.org or biblegateway)
+    if (!isPlaying) {
+      alert("오디오 스트리밍을 준비 중입니다. 프리미엄 오디오 서비스가 곧 시작됩니다.");
+    }
+  };
+
   const currentBook = BOOKS.find(b => b.id === selectedBook);
   const themeClasses = { light: "bg-white text-gray-800", sepia: "bg-[#f4ecd8] text-[#5b4636]", dark: "bg-[#1a1a1a] text-gray-300" };
   const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
@@ -397,6 +409,43 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
             </div>
             <BookOpen size={14} className="hidden sm:block opacity-40" />
           </button>
+        </div>
+
+        {/* Premium Audio Controller */}
+        <div className="flex items-center gap-3 bg-indigo-50/50 px-4 py-2 rounded-2xl border border-indigo-100 shadow-inner group">
+           <div className="flex items-center gap-3">
+              <button 
+                onClick={toggleAudio}
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md active:scale-90",
+                  isPlaying ? "bg-red-500 text-white animate-pulse" : "bg-indigo-600 text-white hover:bg-indigo-700"
+                )}
+              >
+                {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" className="ml-1" />}
+              </button>
+              <div className="hidden sm:flex flex-col">
+                 <span className={cn("text-[9px] font-black uppercase tracking-widest", isPlaying ? "text-red-500" : "text-indigo-600")}>
+                   {isPlaying ? "Streaming Now" : "Audio Bible"}
+                 </span>
+                 <p className="text-[11px] font-bold text-slate-700">말씀 듣기</p>
+              </div>
+           </div>
+           
+           {isPlaying && (
+              <div className="flex items-center gap-1 h-4 px-2">
+                 {[1, 2, 3, 4, 5].map(i => (
+                    <div 
+                       key={i} 
+                       className="w-0.5 bg-red-400 rounded-full animate-audio-bar" 
+                       style={{ 
+                          height: '100%', 
+                          animationDelay: `${i * 0.15}s`,
+                          animationDuration: `${0.5 + Math.random()}s`
+                       }} 
+                    />
+                 ))}
+              </div>
+           )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
@@ -459,8 +508,8 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
 
         {/* Bottom Navigation Button */}
         <div className="mt-12 mb-32 flex flex-col items-center gap-4 max-w-lg mx-auto px-6">
-           <button onClick={handleCheckAndNext} className="w-full py-4 px-8 bg-white border-2 border-indigo-600 text-indigo-600 rounded-full font-black text-lg hover:bg-indigo-50 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-100"><CheckCircle2 size={24} />읽기표 체크 후 다음장</button>
-           <p className="text-sm font-bold text-slate-500 text-center">{todayStr}에 읽은 기록이 있음 (총 {todayLogCount}회)</p>
+           <button onClick={handleCheckAndNext} className="w-full py-4 px-8 bg-white border-2 border-indigo-600 text-indigo-600 rounded-full font-black text-lg hover:bg-indigo-50 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-100"><CheckCircle2 size={24} />{t('reading.chapter_check')}</button>
+           <p className="text-sm font-bold text-slate-500 text-center">{todayStr}{t('reading.today_stats', { count: todayLogCount })}</p>
         </div>
       </div>
 

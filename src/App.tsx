@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Book, Brain, Search, Settings as SettingsIcon, Menu, X, Users, Share2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 
 import ReadingMode from './components/Bible/ReadingMode';
@@ -55,15 +56,16 @@ const SettingsView = () => (
 type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'TRACKER' | 'SETTINGS';
 
 export default function App() {
+  const { t } = useTranslation();
   const [view, setView] = useState<ViewMode>('READING');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navItems = [
-    { id: 'READING', label: '성경 읽기', icon: Book },
-    { id: 'MEMORY', label: '암송 수첩', icon: Brain },
-    { id: 'TRACKER', label: '읽기표', icon: Users },
-    { id: 'SEARCH', label: '통합 검색', icon: Search },
-    { id: 'SETTINGS', label: '환경 설정', icon: SettingsIcon },
+    { id: 'READING', label: t('menu.reading'), icon: Book },
+    { id: 'MEMORY', label: t('menu.memory'), icon: Brain },
+    { id: 'TRACKER', label: t('menu.tracker'), icon: Users },
+    { id: 'SEARCH', label: t('menu.search'), icon: Search },
+    { id: 'SETTINGS', label: t('menu.settings'), icon: SettingsIcon },
   ];
 
   return (
@@ -120,9 +122,9 @@ export default function App() {
                 }}
                 className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl bg-white/5 text-white/70 hover:bg-white/10 transition-all border border-white/5 active:scale-95"
               >
-                <Share2 size={18} className="text-[var(--color-secondary)]" />
-                <span className="text-sm font-bold">친구에게 앱 공유하기</span>
-              </button>
+                  <Share2 size={18} className="text-[var(--color-secondary)]" />
+                  <span className="text-sm font-bold">{t('menu.share')}</span>
+                </button>
               <p className="text-[10px] font-bold text-white/20 tracking-widest px-1 uppercase">© 2026 Global Bible Pro</p>
             </div>
           </div>
