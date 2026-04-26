@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Book, Brain, Search, Settings as SettingsIcon, Menu, X, Users } from 'lucide-react';
+import { Book, Brain, Search, Settings as SettingsIcon, Menu, X, Users, Share2 } from 'lucide-react';
 import { cn } from './lib/utils';
 
 import ReadingMode from './components/Bible/ReadingMode';
@@ -101,8 +101,27 @@ export default function App() {
             ))}
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-white/10">
-            <p className="text-xs text-white/40">© 2026 Global Bible Pro</p>
+          <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
+            <button
+              onClick={async () => {
+                const shareData = {
+                  title: 'Global Bible Journey Pro',
+                  text: '전 세계 성경 통독의 동반자, 프리미엄 성경 통독 플랫폼 Global Bible Pro에 초대합니다!',
+                  url: 'https://fumon1218.github.io/global-bible-pro/'
+                };
+                if (navigator.share) {
+                  try { await navigator.share(shareData); } catch (e) {}
+                } else {
+                  await navigator.clipboard.writeText(shareData.url);
+                  alert('앱 링크가 복사되었습니다! 친구에게 전달해보세요.');
+                }
+              }}
+              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl bg-white/5 text-white/70 hover:bg-white/10 transition-all border border-white/5 active:scale-95"
+            >
+              <Share2 size={18} className="text-[var(--color-secondary)]" />
+              <span className="text-sm font-bold">친구에게 앱 공유하기</span>
+            </button>
+            <p className="text-[10px] font-bold text-white/20 tracking-widest px-1 uppercase">© 2026 Global Bible Pro</p>
           </div>
         </div>
       </aside>

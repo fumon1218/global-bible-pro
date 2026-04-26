@@ -10,10 +10,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Global Bible Pro',
-        short_name: 'GBiblePro',
-        description: 'Premium Multi-Version Bible App',
-        theme_color: '#000000',
+        name: 'Global Bible Journey Pro',
+        short_name: 'GBible Journey',
+        description: '전 세계 성경 통독의 동반자, 프리미엄 다역본 성경 앱',
+        theme_color: '#0f172a',
         icons: [
           {
             src: 'pwa-192x192.png',
