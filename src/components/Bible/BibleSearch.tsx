@@ -2,6 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, BookOpen, ChevronRight, Loader2 } from 'lucide-react';
 import { BOOKS, BIBLE_VERSIONS } from '../../data/mockData';
 import { cn } from '../../lib/utils';
+import { db as localDb } from '../../lib/db';
+
+const getChosung = (str: string) => {
+  const cho = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  let result = "";
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i) - 44032;
+    if (code > -1 && code < 11172) result += cho[Math.floor(code / 588)];
+    else result += str.charAt(i);
+  }
+  return result;
+};
 
 interface SearchResult {
   bookId: string;
@@ -27,9 +39,19 @@ export default function BibleSearch({ onSelectResult, activeVersion }: BibleSear
   useEffect(() => {
     const loadData = async () => {
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}data/bible/${activeVersion.toLowerCase()}.json`);
+        // Try local DB first
+        const cached = await (localDb as any).versions.get(activeVersion);
+        if (cached) {
+          setBibleData(cached.data);
+          return;
+        }
+
+        const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+        const response = await fetch(`${baseUrl}data/bible/${activeVersion.toLowerCase()}.json`);
         if (response.ok) {
-          setBibleData(await response.json());
+          const data = await response.json();
+          setBibleData(data);
+          await (localDb as any).versions.put({ id: activeVersion, data, updatedAt: Date.now() });
         }
       } catch (e) {
         console.error("Failed to load search data", e);
@@ -102,13 +124,23 @@ export default function BibleSearch({ onSelectResult, activeVersion }: BibleSear
             const chapter = book.chapter[chapNum];
             for (const verseNum in chapter.verse) {
               const verse = chapter.verse[verseNum];
-              if (verse.text.toLowerCase().includes(term)) {
+              const plainText = verse.text.replace(/<[^>]*>?/gm, '');
+              const chosungText = getChosung(plainText.toLowerCase());
+              
+              if (plainText.toLowerCase().includes(term) || chosungText.includes(term)) {
+                // Highlight logic (simple)
+                let highlightedText = verse.text;
+                if (term.length > 1 && !chosungText.includes(term)) { // Don't highlight for single chosung
+                   const regex = new RegExp(`(${term})`, 'gi');
+                   highlightedText = verse.text.replace(regex, '<b class="text-indigo-600 font-black">$1</b>');
+                }
+
                 searchResults.push({
                   bookId: bookInfo.id,
                   bookName: bookInfo.name,
                   chapter: parseInt(chapNum),
                   verse: parseInt(verseNum),
-                  text: verse.text,
+                  text: highlightedText,
                   version: activeVersion
                 });
                 if (searchResults.length >= 50) break;
