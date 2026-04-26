@@ -54,6 +54,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [isVersionSelectorOpen, setIsVersionSelectorOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
+  const [readingVerse, setReadingVerse] = useState<number | null>(null);
 
   // Appearance States
   const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('gbp_font_size')) || 18);
@@ -363,11 +364,60 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   };
 
   const toggleAudio = () => {
-    setIsPlaying(!isPlaying);
-    // Future: Logic to play actual MP3 from API (e.g., wordproject.org or biblegateway)
-    if (!isPlaying) {
-      alert("오디오 스트리밍을 준비 중입니다. 프리미엄 오디오 서비스가 곧 시작됩니다.");
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      setReadingVerse(null);
+      return;
     }
+
+    const verses = currentVerses(primaryVersion);
+    if (verses.length === 0) return;
+
+    setIsPlaying(true);
+    let currentIndex = 0;
+
+    const speak = (index: number) => {
+      if (index >= verses.length) {
+        setIsPlaying(false);
+        setReadingVerse(null);
+        return;
+      }
+
+      const verse = verses[index];
+      const cleanText = verse.t.replace(/<[^>]*>?/gm, '');
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      
+      // Try to find high quality Korean voice
+      const voices = window.speechSynthesis.getVoices();
+      const koVoice = voices.find(v => v.lang.includes('ko') && (v.name.includes('Premium') || v.name.includes('Yuna') || v.name.includes('Google')));
+      if (koVoice) utterance.voice = koVoice;
+      
+      utterance.lang = 'ko-KR';
+      utterance.rate = 0.9; // Slightly slower for better meditation
+      utterance.pitch = 1.0;
+
+      utterance.onstart = () => {
+        setReadingVerse(verse.v);
+        const element = document.getElementById(`verse-${verse.v}`);
+        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+
+      utterance.onend = () => {
+        if (window.speechSynthesis.speaking || isPlaying) {
+          speak(index + 1);
+        }
+      };
+
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setReadingVerse(null);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    };
+
+    speak(0);
   };
 
   const currentBook = BOOKS.find(b => b.id === selectedBook);
@@ -489,7 +539,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
               
               <div className="space-y-4">
                 {currentVerses(versionId).map((v) => (
-                  <div key={v.v} id={`verse-${v.v}`} className={cn("group relative p-2 rounded-2xl transition-all duration-300", selectedVerse === v.v ? "bg-gray-50/80 ring-1 ring-gray-100" : "hover:bg-gray-50/30", highlights[v.v]?.color && COLORS.find(c => c.id === highlights[v.v].color)?.bg )} onClick={() => setSelectedVerse(selectedVerse === v.v ? null : v.v)}>
+                  <div key={v.v} id={`verse-${v.v}`} className={cn("group relative p-2 rounded-2xl transition-all duration-300", selectedVerse === v.v ? "bg-gray-50/80 ring-1 ring-gray-100" : (readingVerse === v.v ? "bg-indigo-50 ring-2 ring-indigo-200" : "hover:bg-gray-50/30"), highlights[v.v]?.color && COLORS.find(c => c.id === highlights[v.v].color)?.bg )} onClick={() => setSelectedVerse(selectedVerse === v.v ? null : v.v)}>
                     <div className="flex gap-4">
                       <span className={cn("text-xs font-bold mt-2 shrink-0 w-6 text-right", highlights[v.v]?.color ? "text-gray-600" : "text-indigo-400")}>{v.v}</span>
                       <div className="flex flex-col gap-2 flex-1">
