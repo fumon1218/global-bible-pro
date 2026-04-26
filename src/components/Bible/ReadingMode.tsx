@@ -57,7 +57,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   // Appearance States
   const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('gbp_font_size')) || 18);
   const [theme, setTheme] = useState<'light' | 'sepia' | 'dark'>(() => (localStorage.getItem('gbp_theme') as any) || 'light');
-  const [lineHeight, setLineHeight] = useState(() => Number(localStorage.getItem('gbp_line_height')) || 2.0);
+  const [lineHeight, setLineHeight] = useState(() => Number(localStorage.getItem('gbp_line_height')) || 1.7);
   const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>(() => (localStorage.getItem('gbp_font_family') as any) || 'sans');
 
   // Memoized color map
@@ -474,7 +474,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
                 </span>
               </div>
               
-              <div className="space-y-8">
+              <div className="space-y-4">
                 {currentVerses(versionId).map((v) => (
                   <div key={v.v} id={`verse-${v.v}`} className={cn("group relative p-2 rounded-2xl transition-all duration-300", selectedVerse === v.v ? "bg-gray-50/80 ring-1 ring-gray-100" : "hover:bg-gray-50/30", highlights[v.v]?.color && COLORS.find(c => c.id === highlights[v.v].color)?.bg )} onClick={() => setSelectedVerse(selectedVerse === v.v ? null : v.v)}>
                     <div className="flex gap-4">

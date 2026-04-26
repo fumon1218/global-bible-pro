@@ -19,7 +19,8 @@
   }
   
   .bible-text {
-    font-family: 'Lora', serif;
+    font-family: 'Noto Serif KR', 'Lora', serif;
+    letter-spacing: -0.01em;
   }
   
   .premium-heading {
