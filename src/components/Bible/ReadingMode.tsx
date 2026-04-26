@@ -452,7 +452,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
           <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"><Type size={20} /></button>
           <button onClick={() => setShowSearch(true)} className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600 hidden sm:block"><SearchIcon size={20} /></button>
           <div className="w-px h-6 bg-gray-200 mx-1 hidden lg:block" />
-          <button onClick={() => setIsProgressOpen(true)} className="hidden lg:flex p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"><Calendar size={20} /></button>
+          <button onClick={() => setIsProgressOpen(true)} className="flex p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"><Calendar size={20} /></button>
           <button onClick={() => setIsDashboardOpen(true)} className="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-black transition-all shadow-md active:scale-95"><User size={20} /></button>
         </div>
       </div>
