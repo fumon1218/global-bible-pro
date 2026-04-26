@@ -21,7 +21,11 @@ interface Verse {
   underline?: boolean;
 }
 
-export default function ReadingMode() {
+interface ReadingModeProps {
+  onOpenSidebar?: () => void;
+}
+
+export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   const [selectedBook, setSelectedBook] = useState('GEN');
   const [selectedChapter, setSelectedChapter] = useState(1);
   const [primaryVersion, setPrimaryVersion] = useState(() => localStorage.getItem('gbp_primary_version') || 'NKRV');
@@ -43,7 +47,6 @@ export default function ReadingMode() {
   const [isPlanOpen, setIsPlanOpen] = useState(false);
   const [isVersionSelectorOpen, setIsVersionSelectorOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Appearance States
   const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('gbp_font_size')) || 18);
@@ -161,7 +164,6 @@ export default function ReadingMode() {
       setSelectedChapter(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Find next book
       const bookIdx = BOOKS.findIndex(b => b.id === selectedBook);
       if (bookIdx < BOOKS.length - 1) {
         setSelectedBook(BOOKS[bookIdx + 1].id);
@@ -220,7 +222,7 @@ export default function ReadingMode() {
     fetchBibleData();
   }, [primaryVersion, parallelVersion]);
 
-  // Handle global navigation
+  // Global navigation listener
   useEffect(() => {
     const handleNavigate = () => {
       const lastRef = localStorage.getItem('gbp_last_ref');
@@ -234,16 +236,14 @@ export default function ReadingMode() {
         }, 500);
       }
     };
-
     window.addEventListener('gbp_navigate', handleNavigate);
     return () => window.removeEventListener('gbp_navigate', handleNavigate);
   }, []);
 
-  // Fetch Commentary Data
+  // Fetch Commentary
   useEffect(() => {
     const fetchCommentary = async () => {
       if (!showCommentary) return;
-
       setIsCommentaryLoading(true);
       try {
         const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
@@ -270,11 +270,10 @@ export default function ReadingMode() {
         setIsCommentaryLoading(false);
       }
     };
-
     fetchCommentary();
   }, [showCommentary, selectedBook, selectedChapter]);
 
-  // Fetch Highlights from Firestore & Save Last Position
+  // Highlights & Notes from Firestore
   useEffect(() => {
     const fetchHighlights = async () => {
       const q = query(
@@ -282,7 +281,6 @@ export default function ReadingMode() {
         where("bookId", "==", selectedBook),
         where("chapter", "==", selectedChapter)
       );
-      
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const newHighlights: any = {};
         snapshot.docs.forEach(doc => {
@@ -293,10 +291,8 @@ export default function ReadingMode() {
       });
       return () => unsubscribe();
     };
-
     fetchHighlights();
     
-    // Fetch Notes indicators for current chapter
     const fetchNotes = async () => {
       const q = query(
         collection(db, "notes"),
@@ -305,9 +301,7 @@ export default function ReadingMode() {
       );
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const newNotes: any = {};
-        snapshot.docs.forEach(doc => {
-          newNotes[doc.data().verse] = true;
-        });
+        snapshot.docs.forEach(doc => { newNotes[doc.data().verse] = true; });
         setNotes(newNotes);
       });
       return unsubscribe;
@@ -315,25 +309,18 @@ export default function ReadingMode() {
     const unsubscribeNotes = fetchNotes();
 
     if (selectedBook && selectedChapter) {
-      localStorage.setItem('gbp_last_ref', JSON.stringify({ 
-        b: selectedBook, 
-        c: selectedChapter, 
-        time: Date.now()
-      }));
+      localStorage.setItem('gbp_last_ref', JSON.stringify({ b: selectedBook, c: selectedChapter, time: Date.now() }));
     }
   }, [selectedBook, selectedChapter]);
 
   const toggleHighlight = async (verseNum: number, colorId: string | null) => {
     const docId = `h_${selectedBook}_${selectedChapter}_${verseNum}`;
     const docRef = doc(db, "highlights", docId);
-
     if (!colorId && !highlights[verseNum]?.underline) {
       await deleteDoc(docRef);
     } else {
       await setDoc(docRef, {
-        bookId: selectedBook,
-        chapter: selectedChapter,
-        verse: verseNum,
+        bookId: selectedBook, chapter: selectedChapter, verse: verseNum,
         color: colorId || highlights[verseNum]?.color || 'yellow',
         underline: highlights[verseNum]?.underline || false,
         updatedAt: serverTimestamp()
@@ -345,9 +332,7 @@ export default function ReadingMode() {
     const docId = `h_${selectedBook}_${selectedChapter}_${verseNum}`;
     const docRef = doc(db, "highlights", docId);
     await setDoc(docRef, {
-      bookId: selectedBook,
-      chapter: selectedChapter,
-      verse: verseNum,
+      bookId: selectedBook, chapter: selectedChapter, verse: verseNum,
       color: highlights[verseNum]?.color || 'yellow',
       underline: !highlights[verseNum]?.underline,
       updatedAt: serverTimestamp()
@@ -357,27 +342,16 @@ export default function ReadingMode() {
   const currentVerses = (versionId: string): Verse[] => {
     const data = loadedData[versionId];
     if (!data) return [];
-    
     const book = BOOKS.find(b => b.id === selectedBook);
-    if (!book) return [];
-
-    const chapterData = data.book[book.jsonId]?.chapter[selectedChapter.toString()];
+    const chapterData = data.book[book?.jsonId || '']?.chapter[selectedChapter.toString()];
     if (!chapterData) return [];
-
     return Object.entries(chapterData.verse).map(([v, content]: [string, any]) => ({
-      v: parseInt(v),
-      t: content.text
+      v: parseInt(v), t: content.text
     })).sort((a, b) => a.v - b.v);
   };
 
   const currentBook = BOOKS.find(b => b.id === selectedBook);
-
-  const themeClasses = {
-    light: "bg-white text-gray-800",
-    sepia: "bg-[#f4ecd8] text-[#5b4636]",
-    dark: "bg-[#1a1a1a] text-gray-300"
-  };
-
+  const themeClasses = { light: "bg-white text-gray-800", sepia: "bg-[#f4ecd8] text-[#5b4636]", dark: "bg-[#1a1a1a] text-gray-300" };
   const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
 
   return (
@@ -387,52 +361,6 @@ export default function ReadingMode() {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Mobile Sidebar */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 z-[200]">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
-           <div className="absolute inset-y-0 left-0 w-72 bg-slate-900 text-white p-8 animate-in slide-in-from-left duration-500 shadow-2xl flex flex-col">
-              <div className="flex items-center gap-4 mb-12">
-                 <div className="w-10 h-10 rounded-2xl bg-indigo-500 flex items-center justify-center">
-                    <BookOpen size={20} />
-                 </div>
-                 <h2 className="text-xl font-black">Global Bible Pro</h2>
-              </div>
-
-              <nav className="flex-1 space-y-6">
-                 <button 
-                   onClick={() => { setIsProgressOpen(true); setIsSidebarOpen(false); }}
-                   className="w-full flex items-center gap-4 p-4 hover:bg-white/10 rounded-2xl transition-all group"
-                 >
-                    <Calendar size={20} className="text-indigo-400 group-hover:scale-110 transition-transform" />
-                    <span className="font-bold">성경 읽기표</span>
-                 </button>
-                 <button 
-                   onClick={() => { setShowSearch(true); setIsSidebarOpen(false); }}
-                   className="w-full flex items-center gap-4 p-4 hover:bg-white/10 rounded-2xl transition-all group"
-                 >
-                    <SearchIcon size={20} className="text-indigo-400 group-hover:scale-110 transition-transform" />
-                    <span className="font-bold">통합 말씀 검색</span>
-                 </button>
-                 <button 
-                   onClick={() => { setIsSettingsOpen(true); setIsSidebarOpen(false); }}
-                   className="w-full flex items-center gap-4 p-4 hover:bg-white/10 rounded-2xl transition-all group"
-                 >
-                    <Settings size={20} className="text-indigo-400 group-hover:scale-110 transition-transform" />
-                    <span className="font-bold">환경 설정</span>
-                 </button>
-              </nav>
-
-              <div className="mt-auto pt-8 border-t border-white/5 space-y-4 opacity-50">
-                <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">© 2026 Global Bible Pro</p>
-                <div className="px-3 py-2 bg-white/5 rounded-xl border border-white/5">
-                   <p className="text-[9px] font-bold">PREMIUM VERSION 1.2.7</p>
-                </div>
-              </div>
-           </div>
-        </div>
-      )}
-
       {/* Top Controls - Unified sticky header */}
       <div className={cn(
         "sticky top-0 z-[60] border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm transition-colors",
@@ -440,7 +368,7 @@ export default function ReadingMode() {
       )}>
         <div className="flex items-center gap-2 md:gap-4">
           <button 
-            onClick={() => setIsSidebarOpen(true)}
+            onClick={onOpenSidebar}
             className="p-2 -ml-2 text-gray-500 hover:text-indigo-600 transition-colors md:hidden"
           >
              <MenuIcon size={24} />
@@ -459,10 +387,7 @@ export default function ReadingMode() {
             </div>
           </button>
 
-          <button 
-            onClick={() => setIsVersionSelectorOpen(true)}
-            className="flex items-center gap-2 bg-slate-900 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-2xl shadow-lg hover:bg-black transition-all group"
-          >
+          <button onClick={() => setIsVersionSelectorOpen(true)} className="flex items-center gap-2 bg-slate-900 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-2xl shadow-lg hover:bg-black transition-all">
             <div className="flex flex-col items-start leading-none gap-1">
               <span className="text-[9px] md:text-[10px] font-black opacity-40 uppercase tracking-widest leading-none">Version</span>
               <div className="flex items-center gap-1 md:gap-2">
@@ -475,44 +400,16 @@ export default function ReadingMode() {
                  )}
               </div>
             </div>
-            <div className="hidden sm:flex w-6 h-6 rounded-lg bg-white/10 items-center justify-center text-white/40 group-hover:text-white transition-colors">
-              <BookOpen size={14} />
-            </div>
+            <BookOpen size={14} className="hidden sm:block opacity-40" />
           </button>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"
-            title="보기 설정"
-          >
-            <Type size={20} />
-          </button>
-          <button 
-            onClick={() => setShowSearch(true)}
-            className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600 hidden sm:block"
-            title="검색"
-          >
-            <SearchIcon size={20} />
-          </button>
-
+          <button onClick={() => setIsSettingsOpen(true)} className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"><Type size={20} /></button>
+          <button onClick={() => setShowSearch(true)} className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600 hidden sm:block"><SearchIcon size={20} /></button>
           <div className="w-px h-6 bg-gray-200 mx-1 hidden lg:block" />
-
-          <button 
-            onClick={() => setIsProgressOpen(true)}
-            className="hidden lg:flex p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"
-            title="성경 통독 여정"
-          >
-            <Calendar size={20} />
-          </button>
-          <button 
-            onClick={() => setIsDashboardOpen(true)}
-            className="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-black transition-all shadow-md active:scale-95"
-            title="마이 페이지"
-          >
-            <User size={20} />
-          </button>
+          <button onClick={() => setIsProgressOpen(true)} className="hidden lg:flex p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-100 shadow-sm"><Calendar size={20} /></button>
+          <button onClick={() => setIsDashboardOpen(true)} className="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-black transition-all shadow-md active:scale-95"><User size={20} /></button>
         </div>
       </div>
 
@@ -524,13 +421,7 @@ export default function ReadingMode() {
           </div>
         )}
         
-        <div className={cn(
-          "parallel-container p-6 md:p-12 min-w-full pt-10 md:pt-16",
-          !parallelVersion ? "max-w-4xl mx-auto" : ""
-        )}
-        style={{
-          gridTemplateColumns: parallelVersion ? `repeat(2, minmax(300px, 1fr))` : `1fr`
-        }}>
+        <div className={cn("parallel-container p-6 md:p-12 min-w-full pt-10 md:pt-16", !parallelVersion ? "max-w-4xl mx-auto" : "")} style={{ gridTemplateColumns: parallelVersion ? `repeat(2, minmax(300px, 1fr))` : `1fr` }}>
           {[primaryVersion, parallelVersion].filter(Boolean).map((versionId: any) => (
             <div key={`${versionId}-${selectedBook}-${selectedChapter}`} className="animate-in fade-in slide-in-from-bottom-4 duration-500 border-r last:border-r-0 border-gray-100 pr-4">
               <div className="sticky top-[72px] bg-inherit z-10 py-4 mb-6 border-b border-gray-100 flex items-center justify-between px-2">
@@ -540,186 +431,51 @@ export default function ReadingMode() {
               </div>
               
               <div className="space-y-8">
-                {currentVerses(versionId).length > 0 ? (
-                  currentVerses(versionId).map((v) => (
-                    <div 
-                      key={v.v} 
-                      id={`verse-${v.v}`} 
-                      className={cn(
-                        "group relative p-2 rounded-2xl transition-all duration-300",
-                        selectedVerse === v.v ? "bg-gray-50/80 ring-1 ring-gray-100" : "hover:bg-gray-50/30",
-                        highlights[v.v]?.color && COLORS.find(c => c.id === highlights[v.v].color)?.bg
-                      )}
-                      onClick={() => setSelectedVerse(selectedVerse === v.v ? null : v.v)}
-                    >
-                      <div className="flex gap-4">
-                        <span className={cn(
-                          "text-xs font-bold mt-2 shrink-0 w-6 text-right",
-                          highlights[v.v]?.color ? "text-gray-600" : "text-indigo-400"
-                        )}>
-                          {v.v}
-                        </span>
-                        <div className="flex flex-col gap-2 flex-1">
-                          <p 
-                            className={cn(
-                              "bible-text transition-all duration-300",
-                              versionId === 'JOU' ? "japanese-content" : "",
-                              highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : "",
-                              fontFamily === 'serif' ? 'font-serif' : 'font-sans'
-                            )}
-                            style={{ 
-                              fontSize: `${fontSize}px`,
-                              lineHeight: lineHeight,
-                              color: theme === 'dark' ? '#d1d5db' : (theme === 'sepia' ? '#5b4636' : '#1f2937')
-                            }}
-                            dangerouslySetInnerHTML={{ __html: v.t }}
-                          />
-                          
-                          {/* Highlight Toolbar */}
-                          {selectedVerse === v.v && (
-                            <div className="flex flex-wrap items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 z-20">
-                              <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl shadow-lg border border-gray-100">
-                                {COLORS.map(color => (
-                                  <button
-                                    key={color.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleHighlight(v.v, highlights[v.v]?.color === color.id ? null : color.id);
-                                    }}
-                                    className={cn(
-                                      "w-6 h-6 rounded-full border-2 transition-transform hover:scale-110",
-                                      color.bg,
-                                      highlights[v.v]?.color === color.id ? "border-slate-800 scale-110" : "border-transparent"
-                                    )}
-                                  />
-                                ))}
-                                <div className="w-px h-4 bg-gray-100 mx-1" />
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleUnderline(v.v);
-                                  }}
-                                  className={cn(
-                                    "px-3 py-1 rounded-lg text-xs font-bold border transition-colors",
-                                    highlights[v.v]?.underline 
-                                      ? "bg-slate-800 text-white border-slate-800" 
-                                      : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"
-                                  )}
-                                >
-                                  U
-                                </button>
-                              </div>
-                              
-                              <div className="flex items-center gap-1">
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsNoteEditorOpen(true);
-                                  }}
-                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-indigo-600 transition-colors"
-                                >
-                                  <Edit3 size={16} />
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleShare(v);
-                                  }}
-                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-indigo-600 transition-colors"
-                                >
-                                  <Share2 size={16} />
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowCommentary(true);
-                                  }}
-                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-indigo-600 transition-colors"
-                                >
-                                  <MessageSquare size={16} />
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleSaveVerse(selectedBook, selectedChapter, v.v, v.t);
-                                  }}
-                                  className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-red-500 transition-colors"
-                                >
-                                  <Heart size={16} fill={savedVerses.includes(`${selectedBook}_${selectedChapter}_${v.v}`) ? "currentColor" : "none"} />
-                                </button>
-                              </div>
+                {currentVerses(versionId).map((v) => (
+                  <div key={v.v} id={`verse-${v.v}`} className={cn("group relative p-2 rounded-2xl transition-all duration-300", selectedVerse === v.v ? "bg-gray-50/80 ring-1 ring-gray-100" : "hover:bg-gray-50/30", highlights[v.v]?.color && COLORS.find(c => c.id === highlights[v.v].color)?.bg )} onClick={() => setSelectedVerse(selectedVerse === v.v ? null : v.v)}>
+                    <div className="flex gap-4">
+                      <span className={cn("text-xs font-bold mt-2 shrink-0 w-6 text-right", highlights[v.v]?.color ? "text-gray-600" : "text-indigo-400")}>{v.v}</span>
+                      <div className="flex flex-col gap-2 flex-1">
+                        <p className={cn("bible-text transition-all duration-300", highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : "", fontFamily === 'serif' ? 'font-serif' : 'font-sans' )} style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight, color: theme === 'dark' ? '#d1d5db' : (theme === 'sepia' ? '#5b4636' : '#1f2937') }} dangerouslySetInnerHTML={{ __html: v.t }} />
+                        {selectedVerse === v.v && (
+                          <div className="flex flex-wrap items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 z-20">
+                            <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl shadow-lg border border-gray-100">
+                              {COLORS.map(color => (
+                                <button key={color.id} onClick={(e) => { e.stopPropagation(); toggleHighlight(v.v, highlights[v.v]?.color === color.id ? null : color.id); }} className={cn("w-6 h-6 rounded-full border-2 transition-transform hover:scale-110", color.bg, highlights[v.v]?.color === color.id ? "border-slate-800 scale-110" : "border-transparent" )} />
+                              ))}
+                              <button onClick={(e) => { e.stopPropagation(); toggleUnderline(v.v); }} className={cn("px-3 py-1 rounded-lg text-xs font-bold border transition-colors", highlights[v.v]?.underline ? "bg-slate-800 text-white border-slate-800" : "bg-white text-gray-400 border-gray-200 hover:border-gray-400" )}>U</button>
                             </div>
-                          )}
-                        </div>
-
-                        {/* Note Indicator */}
-                        {notes[v.v] && (
-                          <div className="absolute top-2 right-2 text-indigo-500">
-                            <StickyNote size={14} fill="currentColor" fillOpacity={0.2} />
+                            <div className="flex items-center gap-1">
+                              <button onClick={(e) => { e.stopPropagation(); setIsNoteEditorOpen(true); }} className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-indigo-600"><Edit3 size={16} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); handleShare(v); }} className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-indigo-600"><Share2 size={16} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); setShowCommentary(true); }} className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-indigo-600"><MessageSquare size={16} /></button>
+                              <button onClick={(e) => { e.stopPropagation(); toggleSaveVerse(selectedBook, selectedChapter, v.v, v.t); }} className="p-2 bg-white rounded-xl shadow-lg border border-gray-100 text-gray-400 hover:text-red-500"><Heart size={16} fill={savedVerses.includes(`${selectedBook}_${selectedChapter}_${v.v}`) ? "currentColor" : "none"} /></button>
+                            </div>
                           </div>
                         )}
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="py-24 text-center text-gray-400 text-sm flex flex-col items-center gap-4">
-                    <Loader2 className="animate-spin text-gray-200" size={24} />
-                    <span>말씀을 불러오는 중...</span>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Bottom Navigation Button (Image 4 Style) */}
+        {/* Bottom Navigation Button */}
         <div className="mt-12 mb-32 flex flex-col items-center gap-4 max-w-lg mx-auto px-6">
-           <button 
-             onClick={handleCheckAndNext}
-             className="w-full py-4 px-8 bg-white border-2 border-indigo-600 text-indigo-600 rounded-full font-black text-lg hover:bg-indigo-50 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-100"
-           >
-              <CheckCircle2 size={24} />
-              읽기표 체크 후 다음장
-           </button>
-           <p className="text-sm font-bold text-slate-500 text-center">
-              {todayStr}에 읽은 기록이 있음 (총 {todayLogCount}회)
-           </p>
+           <button onClick={handleCheckAndNext} className="w-full py-4 px-8 bg-white border-2 border-indigo-600 text-indigo-600 rounded-full font-black text-lg hover:bg-indigo-50 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-100"><CheckCircle2 size={24} />읽기표 체크 후 다음장</button>
+           <p className="text-sm font-bold text-slate-500 text-center">{todayStr}에 읽은 기록이 있음 (총 {todayLogCount}회)</p>
         </div>
-      </div>
-
-      {/* Truly Fixed Version Bubble */}
-      <div className="fixed bottom-6 right-6 z-[100] pointer-events-none">
-         <div className="px-5 py-2 bg-slate-900/10 backdrop-blur-md rounded-full border border-slate-900/10 shadow-lg animate-in fade-in slide-in-from-bottom duration-1000">
-            <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Version 1.2.7 Premium</span>
-         </div>
       </div>
 
       {/* Overlays */}
       {showSearch && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowSearch(false)} />
-          <div className="relative w-full max-w-md h-full md:h-[90vh] bg-white md:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-500">
-             <div className="p-6 border-b flex items-center justify-between">
-                <h3 className="font-black text-xl">말씀 검색</h3>
-                <button onClick={() => setShowSearch(false)} className="p-2 hover:bg-slate-100 rounded-full">
-                  <X size={20}/>
-                </button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <BibleSearch 
-                  activeVersion={primaryVersion} 
-                  onSelectResult={(bookId, chap, vers) => {
-                    setSelectedBook(bookId);
-                    setSelectedChapter(chap);
-                    setShowSearch(false);
-                    setTimeout(() => {
-                      const element = document.getElementById(`verse-${vers}`);
-                      if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      setSelectedVerse(vers);
-                    }, 500);
-                  }}
-                />
-              </div>
+          <div className="relative w-full max-w-md h-full md:h-[90vh] bg-white md:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+             <div className="p-6 border-b flex items-center justify-between"><h3 className="font-black text-xl">말씀 검색</h3><button onClick={() => setShowSearch(false)} className="p-2 hover:bg-slate-100 rounded-full"><X size={20}/></button></div>
+             <div className="flex-1 overflow-hidden"><BibleSearch activeVersion={primaryVersion} onSelectResult={(bookId, chap, vers) => { setSelectedBook(bookId); setSelectedChapter(chap); setShowSearch(false); setTimeout(() => { const element = document.getElementById(`verse-${vers}`); if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); setSelectedVerse(vers); }, 500); }} /></div>
           </div>
         </div>
       )}
@@ -727,36 +483,12 @@ export default function ReadingMode() {
       {showCommentary && (
         <div className="fixed inset-y-0 right-0 w-full md:w-[400px] lg:w-[500px] bg-white border-l shadow-2xl z-[150] animate-in slide-in-from-right duration-300">
           <div className="flex flex-col h-full uppercase">
-            <div className="p-6 border-b flex items-center justify-between bg-slate-50">
-              <div>
-                <h3 className="font-black text-lg">성경 주석</h3>
-                <p className="text-[10px] font-bold text-slate-400 mt-1">{currentBook?.name} {selectedChapter}장</p>
-              </div>
-              <button onClick={() => setShowCommentary(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-                <X size={20}/>
-              </button>
-            </div>
+            <div className="p-6 border-b flex items-center justify-between bg-slate-50"><div><h3 className="font-black text-lg">성경 주석</h3><p className="text-[10px] font-bold text-slate-400 mt-1">{currentBook?.name} {selectedChapter}장</p></div><button onClick={() => setShowCommentary(false)} className="p-2 hover:bg-slate-200 rounded-full"><X size={20}/></button></div>
             <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
-              {isCommentaryLoading ? (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-300 gap-4">
-                  <Loader2 className="animate-spin" size={24} />
-                  <p className="text-xs font-bold">주석 로딩 중...</p>
-                </div>
-              ) : commentaryData ? (
+              {isCommentaryLoading ? <div className="flex flex-col items-center justify-center h-64 text-slate-300 gap-4"><Loader2 className="animate-spin" size={24} /><p className="text-xs font-bold">주석 로딩 중...</p></div> : commentaryData ? (
                 <div className="space-y-6">
-                  <div className="flex items-center gap-2">
-                    <div className="h-px flex-1 bg-slate-100"></div>
-                    <span className="text-indigo-600 font-black text-[10px] tracking-[0.2em]">CHOKMAH</span>
-                    <div className="h-px flex-1 bg-slate-100"></div>
-                  </div>
-                  <div className="space-y-8">
-                    {commentaryData.commentary?.map((item: any, idx: number) => (
-                      <div key={idx} className="space-y-3">
-                        {item.verses && <span className="inline-block px-2 py-0.5 bg-indigo-50 text-[10px] font-black rounded text-indigo-500">VERSES {item.verses}</span>}
-                        <div className="text-slate-700 leading-relaxed text-sm md:text-base whitespace-pre-line prose prose-slate" dangerouslySetInnerHTML={{ __html: item.content }} />
-                      </div>
-                    ))}
-                  </div>
+                  <div className="flex items-center gap-2"><div className="h-px flex-1 bg-slate-100"></div><span className="text-indigo-600 font-black text-[10px] tracking-[0.2em]">CHOKMAH</span><div className="h-px flex-1 bg-slate-100"></div></div>
+                  <div className="space-y-8">{commentaryData.commentary?.map((item: any, idx: number) => ( <div key={idx} className="space-y-3">{item.verses && <span className="inline-block px-2 py-0.5 bg-indigo-50 text-[10px] font-black rounded text-indigo-500">VERSES {item.verses}</span>}<div className="text-slate-700 leading-relaxed text-sm md:text-base whitespace-pre-line prose prose-slate" dangerouslySetInnerHTML={{ __html: item.content }} /></div> ))}</div>
                 </div>
               ) : <p className="text-center py-20 text-slate-400 italic">주석 정보가 없습니다.</p>}
             </div>
@@ -764,7 +496,6 @@ export default function ReadingMode() {
         </div>
       )}
 
-      {/* Modal Components */}
       <BibleSettings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} fontSize={fontSize} setFontSize={setFontSize} theme={theme} setTheme={setTheme} lineHeight={lineHeight} setLineHeight={setLineHeight} fontFamily={fontFamily} setFontFamily={setFontFamily} />
       <VersionSelector isOpen={isVersionSelectorOpen} onClose={() => setIsVersionSelectorOpen(false)} primaryVersion={primaryVersion} parallelVersion={parallelVersion} onSelectPrimary={(id) => setPrimaryVersion(id)} onSelectParallel={(id) => setParallelVersion(id)} />
       <ReadingProgress isOpen={isProgressOpen} onClose={() => setIsProgressOpen(false)} onNavigate={(b, c) => { setSelectedBook(b); setSelectedChapter(c); setIsProgressOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} />

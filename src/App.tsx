@@ -108,18 +108,9 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Header */}
-        <header className="lg:hidden flex items-center justify-between p-4 bg-white border-b sticky top-0 z-40">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2">
-            <Menu size={24} />
-          </button>
-          <h1 className="text-lg font-bold premium-heading">Global Bible Pro</h1>
-          <div className="w-8" /> {/* Spacer */}
-        </header>
-
-        <main className="flex-1 overflow-y-auto">
-          {view === 'READING' && <ReadingMode />}
+      <div className="flex-1 flex flex-col min-w-0 relative">
+        <main className="flex-1 overflow-y-auto no-scrollbar relative">
+          {view === 'READING' && <ReadingMode onOpenSidebar={() => setIsSidebarOpen(true)} />}
           {view === 'MEMORY' && <MemoryMode />}
           {view === 'SEARCH' && (
             <SearchView onSelect={(b, c, v) => {
@@ -134,12 +125,19 @@ export default function App() {
           {view === 'TRACKER' && <TrackerMode />}
           {view === 'SETTINGS' && <SettingsView />}
         </main>
+
+        {/* Truly Fixed Version Bubble at Global Level */}
+        <div className="fixed bottom-6 right-6 z-[9999] pointer-events-none">
+           <div className="px-5 py-2 bg-slate-900/10 backdrop-blur-md rounded-full border border-slate-900/10 shadow-lg animate-in fade-in slide-in-from-bottom duration-1000">
+              <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Version 1.2.7 Premium</span>
+           </div>
+        </div>
       </div>
 
-      {/* Mobile Overlay */}
+      {/* Global Mobile Overlay for Sidebar */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998] lg:hidden animate-in fade-in duration-300"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
