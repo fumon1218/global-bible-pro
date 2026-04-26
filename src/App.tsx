@@ -125,7 +125,10 @@ export default function App() {
                   <Share2 size={18} className="text-[var(--color-secondary)]" />
                   <span className="text-sm font-bold">{t('menu.share')}</span>
                 </button>
-              <p className="text-[10px] font-bold text-white/20 tracking-widest px-1 uppercase">© 2026 Global Bible Pro</p>
+              <div className="flex flex-col gap-1 px-1">
+                <p className="text-[10px] font-bold text-white/20 tracking-widest uppercase">© 2026 Global Bible Pro</p>
+                <p className="text-[9px] font-black text-white/40 tracking-widest uppercase opacity-80">Version 1.2.8 Premium</p>
+              </div>
             </div>
           </div>
         </aside>
@@ -154,13 +157,6 @@ export default function App() {
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
-      </div>
-
-      {/* Truly Fixed Version Bubble at Absolute Root Level */}
-      <div className="fixed bottom-10 right-6 z-[10001] pointer-events-none">
-         <div className="px-5 py-2 bg-slate-900/20 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom duration-1000">
-            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Version 1.2.8 Premium</span>
-         </div>
       </div>
     </ReadingProvider>
   );
