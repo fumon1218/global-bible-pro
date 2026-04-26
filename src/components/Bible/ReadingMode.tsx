@@ -51,6 +51,14 @@ export default function ReadingMode() {
   const [lineHeight, setLineHeight] = useState(() => Number(localStorage.getItem('gbp_line_height')) || 2.0);
   const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>(() => (localStorage.getItem('gbp_font_family') as any) || 'sans');
 
+  // Memoized color map
+  const COLORS = [
+    { id: 'yellow', bg: 'bg-yellow-200', text: 'text-yellow-900', border: 'border-yellow-400' },
+    { id: 'green', bg: 'bg-green-200', text: 'text-green-900', border: 'border-green-400' },
+    { id: 'blue', bg: 'bg-blue-200', text: 'text-blue-900', border: 'border-blue-400' },
+    { id: 'pink', bg: 'bg-pink-200', text: 'text-pink-900', border: 'border-pink-400' },
+  ];
+
   // Swipe State
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -418,7 +426,7 @@ export default function ReadingMode() {
               <div className="mt-auto pt-8 border-t border-white/5 space-y-4 opacity-50">
                 <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400">© 2026 Global Bible Pro</p>
                 <div className="px-3 py-2 bg-white/5 rounded-xl border border-white/5">
-                   <p className="text-[9px] font-bold">PREMIUM VERSION 1.2.6</p>
+                   <p className="text-[9px] font-bold">PREMIUM VERSION 1.2.7</p>
                 </div>
               </div>
            </div>
@@ -479,7 +487,7 @@ export default function ReadingMode() {
             className="p-2.5 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors text-gray-600"
             title="보기 설정"
           >
-            <Type size={18} md:size={20} />
+            <Type size={20} />
           </button>
           <button 
             onClick={() => setShowSearch(true)}
@@ -503,7 +511,7 @@ export default function ReadingMode() {
             className="p-2.5 bg-slate-900 text-white rounded-xl hover:bg-black transition-all shadow-md active:scale-95"
             title="마이 페이지"
           >
-            <User size={18} md:size={20} />
+            <User size={20} />
           </button>
         </div>
       </div>
@@ -682,7 +690,7 @@ export default function ReadingMode() {
       {/* Truly Fixed Version Bubble */}
       <div className="fixed bottom-6 right-6 z-[100] pointer-events-none">
          <div className="px-5 py-2 bg-slate-900/10 backdrop-blur-md rounded-full border border-slate-900/10 shadow-lg animate-in fade-in slide-in-from-bottom duration-1000">
-            <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Version 1.2.6 Premium</span>
+            <span className="text-[10px] font-black tracking-widest text-slate-500 uppercase">Version 1.2.7 Premium</span>
          </div>
       </div>
 
