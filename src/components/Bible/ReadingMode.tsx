@@ -51,6 +51,11 @@ export default function ReadingMode() {
   const [lineHeight, setLineHeight] = useState(() => Number(localStorage.getItem('gbp_line_height')) || 2.0);
   const [fontFamily, setFontFamily] = useState<'sans' | 'serif'>(() => (localStorage.getItem('gbp_font_family') as any) || 'sans');
 
+  // Swipe State
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 70;
+
   // Persistence of settings
   useEffect(() => {
     localStorage.setItem('gbp_font_size', fontSize.toString());
@@ -97,6 +102,35 @@ export default function ReadingMode() {
     
     setSavedVerses(newSaved);
     localStorage.setItem('gbp_saved_verses', JSON.stringify(newSaved));
+  };
+
+  // Swipe Navigation Logic
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    const currentBookInfo = BOOKS.find(b => b.id === selectedBook);
+    
+    if (isLeftSwipe) {
+      if (selectedChapter < (currentBookInfo?.chapters || 1)) {
+        setSelectedChapter(prev => prev + 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else if (isRightSwipe) {
+      if (selectedChapter > 1) {
+        setSelectedChapter(prev => prev - 1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
   };
 
   const handleShare = async (verse: Verse) => {
@@ -305,7 +339,12 @@ export default function ReadingMode() {
   };
 
   return (
-    <div className={cn("flex flex-col h-full relative transition-colors duration-500", themeClasses[theme])}>
+    <div 
+      className={cn("flex flex-col h-full relative transition-colors duration-500", themeClasses[theme])}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Top Controls - Unified sticky header */}
       <div className={cn(
         "sticky top-0 z-[60] border-b px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm transition-colors",
@@ -335,8 +374,8 @@ export default function ReadingMode() {
                  <span className="text-sm font-black">{BIBLE_VERSIONS.find(v => v.id === primaryVersion)?.name}</span>
                  {parallelVersion && (
                     <>
-                      <div className="w-px h-3 bg-white/20" />
-                      <span className="text-sm font-black text-indigo-400">{BIBLE_VERSIONS.find(v => v.id === parallelVersion)?.name}</span>
+                       <div className="w-px h-3 bg-white/20" />
+                       <span className="text-sm font-black text-indigo-400">{BIBLE_VERSIONS.find(v => v.id === parallelVersion)?.name}</span>
                     </>
                  )}
               </div>
@@ -564,6 +603,13 @@ export default function ReadingMode() {
             </div>
           ))}
         </div>
+
+        {/* Floating Version Display */}
+        <div className="fixed bottom-4 right-4 z-[40] pointer-events-none">
+           <div className="px-3 py-1 bg-slate-900/5 backdrop-blur-sm rounded-full border border-slate-900/5 shadow-sm">
+              <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">Version 1.2.6 Premium</span>
+           </div>
+        </div>
       </div>
 
       {/* Search Overlay */}
@@ -591,7 +637,6 @@ export default function ReadingMode() {
                     setSelectedBook(bookId);
                     setSelectedChapter(chap);
                     setShowSearch(false);
-                    // Optionally scroll to verse
                     setTimeout(() => {
                       const element = document.getElementById(`verse-${vers}`);
                       if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -631,7 +676,7 @@ export default function ReadingMode() {
                 <div className="space-y-6">
                   <div className="flex items-center gap-2">
                     <div className="h-px flex-1 bg-gray-100"></div>
-                    <span className="text-[var(--color-secondary)] font-black text-[10px] tracking-[0.2em] uppercase">
+                    <span className="text-indigo-600 font-black text-[10px] tracking-[0.2em] uppercase">
                       Chokmah Commentary
                     </span>
                     <div className="h-px flex-1 bg-gray-100"></div>
@@ -651,32 +696,19 @@ export default function ReadingMode() {
                         />
                       </div>
                     ))}
-                    {!commentaryData.commentary?.length && (
-                      <p className="text-gray-500 text-sm italic text-center py-12">주석 내용이 없습니다.</p>
-                    )}
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-20">
                   <p className="text-gray-400 text-sm">해당 장의 주석을 불러올 수 없습니다.</p>
-                  <button 
-                    onClick={() => setShowCommentary(false)}
-                    className="mt-4 text-[var(--color-secondary)] font-bold text-sm underline underline-offset-4"
-                  >
-                    닫기
-                  </button>
                 </div>
               )}
-            </div>
-            
-            <div className="p-6 bg-gray-50 text-[10px] text-gray-400 border-t">
-              Data provided by local Hokmah Commentary & HelloAO API (Matthew Henry).
             </div>
           </div>
         </div>
       )}
 
-      {/* Bible Settings Modal */}
+      {/* Settings Modal */}
       <BibleSettings 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -690,38 +722,25 @@ export default function ReadingMode() {
         setFontFamily={setFontFamily}
       />
 
-      {/* Note Editor Modal */}
-      {selectedVerse && (
-        <NoteEditor 
-          isOpen={isNoteEditorOpen}
-          onClose={() => setIsNoteEditorOpen(false)}
-          bookId={selectedBook}
-          bookName={currentBook?.name || ''}
-          chapter={selectedChapter}
-          verse={selectedVerse}
-          verseText={currentVerses(primaryVersion).find(v => v.v === selectedVerse)?.t || ''}
-        />
-      )}
+      {/* Version Selector */}
+      <VersionSelector
+        isOpen={isVersionSelectorOpen}
+        onClose={() => setIsVersionSelectorOpen(false)}
+        primaryVersion={primaryVersion}
+        parallelVersion={parallelVersion}
+        onSelectPrimary={(id) => setPrimaryVersion(id)}
+        onSelectParallel={(id) => setParallelVersion(id)}
+      />
 
-      {/* Bible Selector Modal */}
-      <BibleSelector 
-        isOpen={isSelectorOpen}
-        onClose={() => setIsSelectorOpen(false)}
-        currentBook={selectedBook}
-        currentChapter={selectedChapter}
-        maxVerse={currentVerses(primaryVersion).length || 80}
-        onSelect={(bookId, chap, vers) => {
-          setSelectedBook(bookId);
-          setSelectedChapter(chap);
-          setIsSelectorOpen(false);
-          // Scroll to verse after a short delay to allow data to load
-          setTimeout(() => {
-            const element = document.getElementById(`verse-${vers}`);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              setSelectedVerse(vers);
-            }
-          }, 800);
+      {/* Reading Progress Dashboard */}
+      <ReadingProgress 
+        isOpen={isProgressOpen}
+        onClose={() => setIsProgressOpen(false)}
+        onNavigate={(b, c) => {
+          setSelectedBook(b);
+          setSelectedChapter(c);
+          setIsProgressOpen(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
 
@@ -743,35 +762,37 @@ export default function ReadingMode() {
         }}
       />
 
-      {/* Reading Plan */}
-      <ReadingPlan 
-        isOpen={isPlanOpen}
-        onClose={() => setIsPlanOpen(false)}
-        onNavigate={(b, c) => {
-          setSelectedBook(b);
-          setSelectedChapter(c);
-          setIsPlanOpen(false);
-        }}
-      />
+      {/* Note Editor */}
+      {selectedVerse && (
+        <NoteEditor 
+          isOpen={isNoteEditorOpen}
+          onClose={() => setIsNoteEditorOpen(false)}
+          bookId={selectedBook}
+          bookName={currentBook?.name || ''}
+          chapter={selectedChapter}
+          verse={selectedVerse}
+          verseText={currentVerses(primaryVersion).find(verse => verse.v === selectedVerse)?.t || ''}
+        />
+      )}
 
-      {/* Version Selector */}
-      <VersionSelector 
-        isOpen={isVersionSelectorOpen}
-        onClose={() => setIsVersionSelectorOpen(false)}
-        primaryVersion={primaryVersion}
-        parallelVersion={parallelVersion}
-        onSelectPrimary={setPrimaryVersion}
-        onSelectParallel={setParallelVersion}
-      />
-
-      {/* Reading Progress Dashboard */}
-      <ReadingProgress 
-        isOpen={isProgressOpen}
-        onClose={() => setIsProgressOpen(false)}
-        onNavigate={(b, c) => {
-          setSelectedBook(b);
-          setSelectedChapter(c);
-          setIsProgressOpen(false);
+      {/* Bible Selection Modal (Book/Chapter selector) */}
+      <BibleSelector 
+        isOpen={isSelectorOpen}
+        onClose={() => setIsSelectorOpen(false)}
+        currentBook={selectedBook}
+        currentChapter={selectedChapter}
+        maxVerse={currentVerses(primaryVersion).length}
+        onSelect={(bookId, chap, vers) => {
+          setSelectedBook(bookId);
+          setSelectedChapter(chap);
+          setIsSelectorOpen(false);
+          setTimeout(() => {
+            const element = document.getElementById(`verse-${vers}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setSelectedVerse(vers);
+            }
+          }, 800);
         }}
       />
     </div>
