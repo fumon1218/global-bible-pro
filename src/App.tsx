@@ -159,7 +159,7 @@ export default function App() {
       {/* Truly Fixed Version Bubble at Absolute Root Level */}
       <div className="fixed bottom-10 right-6 z-[10001] pointer-events-none">
          <div className="px-5 py-2 bg-slate-900/20 backdrop-blur-xl rounded-full border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom duration-1000">
-            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Version 1.2.7 Premium</span>
+            <span className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Version 1.2.8 Premium</span>
          </div>
       </div>
     </ReadingProvider>
