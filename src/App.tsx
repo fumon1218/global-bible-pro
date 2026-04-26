@@ -103,6 +103,9 @@ export default function App() {
                   <span>{item.label}</span>
                 </button>
               ))}
+              <div className="pt-2 px-4">
+                <p className="text-[9px] font-black text-white/30 tracking-widest uppercase opacity-80">Version 1.2.8 Premium</p>
+              </div>
             </nav>
 
             <div className="mt-auto pt-6 border-t border-white/10 space-y-4">
@@ -127,7 +130,6 @@ export default function App() {
                 </button>
               <div className="flex flex-col gap-1 px-1">
                 <p className="text-[10px] font-bold text-white/20 tracking-widest uppercase">© 2026 Global Bible Pro</p>
-                <p className="text-[9px] font-black text-white/40 tracking-widest uppercase opacity-80">Version 1.2.8 Premium</p>
               </div>
             </div>
           </div>
