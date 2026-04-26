@@ -197,7 +197,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     }
   };
 
-  // Fetch Bible Data
+  // Fetch Bible Data with improved error handling and retry
   useEffect(() => {
     const fetchBibleData = async () => {
       const versionsToFetch = [primaryVersion, parallelVersion].filter(v => v && !loadedData[v]) as string[];
@@ -206,27 +206,42 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
       setIsLoading(true);
       try {
         for (const vId of versionsToFetch) {
-          // 1. Try Local DB first
-          const cached = await (localDb as any).versions.get(vId);
-          if (cached) {
-            setLoadedData(prev => ({ ...prev, [vId]: cached.data }));
-            continue;
-          }
+          try {
+            // 1. Try Local DB first
+            const cached = await (localDb as any).versions.get(vId);
+            if (cached) {
+              setLoadedData(prev => ({ ...prev, [vId]: cached.data }));
+              continue;
+            }
 
-          // 2. Fetch from network
-          const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
-          const response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json?t=${Date.now()}`);
-          if (response.ok) {
-            const data = await response.json();
+            // 2. Fetch from network with retry
+            const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+            let response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json?t=${Date.now()}`);
             
-            // 3. Save to Local DB
-            await (localDb as any).versions.put({ id: vId, data, updatedAt: Date.now() });
-            
-            setLoadedData(prev => ({ ...prev, [vId]: data }));
+            if (!response.ok) {
+              // Simple retry logic
+              console.warn(`Initial fetch failed for ${vId}, retrying...`);
+              response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json?t=${Date.now()}`);
+            }
+
+            if (response.ok) {
+              const data = await response.json();
+              await (localDb as any).versions.put({ id: vId, data, updatedAt: Date.now() });
+              setLoadedData(prev => ({ ...prev, [vId]: data }));
+            } else {
+              throw new Error(`Failed to load ${vId}`);
+            }
+          } catch (itemError) {
+            console.error(`Error loading version ${vId}:`, itemError);
+            // If primary version fails, we might want to fallback to KRV if available
+            if (vId === primaryVersion && vId !== 'KRV') {
+               console.warn("Falling back to KRV due to primary version load failure");
+               setPrimaryVersion('KRV');
+            }
           }
         }
       } catch (error) {
-        console.error("Failed to fetch Bible data:", error);
+        console.error("Critical error in Bible data fetching:", error);
       } finally {
         setIsLoading(false);
       }
@@ -567,6 +582,23 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
               </div>
             </div>
           ))}
+          {(!isLoading && Object.keys(loadedData).length === 0) && (
+            <div className="col-span-full py-20 text-center space-y-4">
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500">
+                <X size={32} />
+              </div>
+              <div>
+                <p className="font-bold text-lg">데이터를 불러올 수 없습니다.</p>
+                <p className="text-gray-400 text-sm">네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요.</p>
+              </div>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-full font-bold shadow-lg hover:bg-indigo-700 transition-all"
+              >
+                새로고침
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Bottom Navigation Button */}
