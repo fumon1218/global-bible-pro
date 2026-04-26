@@ -13,6 +13,7 @@ import ReadingProgress from './ReadingProgress';
 import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon, BookOpen, Headphones, Settings, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { db, auth } from '../../lib/firebase';
+import { db as localDb } from '../../lib/db';
 import { useReading } from '../../contexts/ReadingContext';
 import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -204,10 +205,22 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
       setIsLoading(true);
       try {
         for (const vId of versionsToFetch) {
+          // 1. Try Local DB first
+          const cached = await (localDb as any).versions.get(vId);
+          if (cached) {
+            setLoadedData(prev => ({ ...prev, [vId]: cached.data }));
+            continue;
+          }
+
+          // 2. Fetch from network
           const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
           const response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json?t=${Date.now()}`);
           if (response.ok) {
             const data = await response.json();
+            
+            // 3. Save to Local DB
+            await (localDb as any).versions.put({ id: vId, data, updatedAt: Date.now() });
+            
             setLoadedData(prev => ({ ...prev, [vId]: data }));
           }
         }
