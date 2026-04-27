@@ -80,8 +80,9 @@ export const ReadingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const login = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      alert(`로그인 실패: ${error.message}\n(Firebase 콘솔 설정 문제이거나 팝업 차단일 수 있습니다.)`);
     }
   };
 
