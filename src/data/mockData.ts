@@ -89,6 +89,7 @@ export const BIBLE_VERSIONS = [
   { id: 'KLB', name: '현대인의성경', lang: 'ko' },
   { id: 'CTB', name: '공동번역', lang: 'ko' },
   { id: 'NIV', name: 'NIV', lang: 'en' },
+  { id: 'ESV', name: 'ESV', lang: 'en' },
   { id: 'NLT', name: 'NLT', lang: 'en' },
   { id: 'NKJV', name: 'NKJV', lang: 'en' },
   { id: 'KJV', name: 'KJV', lang: 'en' },
