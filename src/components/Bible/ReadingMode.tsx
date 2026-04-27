@@ -210,8 +210,14 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
             // 1. Try Local DB first
             const cached = await (localDb as any).versions.get(vId);
             if (cached) {
-              setLoadedData(prev => ({ ...prev, [vId]: cached.data }));
-              continue;
+              // Validate cache structure to prevent blank space errors from broken json
+              if (cached.data?.book?.['1']?.chapter?.['1']?.verse) {
+                setLoadedData(prev => ({ ...prev, [vId]: cached.data }));
+                continue;
+              } else {
+                console.warn(`Invalid cache detected for ${vId}, clearing and refetching...`);
+                await (localDb as any).versions.delete(vId);
+              }
             }
 
             // 2. Fetch from network with retry
