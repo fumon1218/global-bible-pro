@@ -222,7 +222,8 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
 
             // 2. Fetch from network with retry
             const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
-            let response = await fetch(`${baseUrl}data/bible/${vId.toLowerCase()}.json?t=${Date.now()}`);
+            const fileName = vId.toLowerCase() === 'krv' ? 'krv_fixed_v3' : vId.toLowerCase();
+            let response = await fetch(`${baseUrl}data/bible/${fileName}.json?t=${Date.now()}`);
             
             if (!response.ok) {
               // Simple retry logic
@@ -379,9 +380,26 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     const book = BOOKS.find(b => b.id === selectedBook);
     const chapterData = data.book[book?.jsonId || '']?.chapter[selectedChapter.toString()];
     if (!chapterData) return [];
-    return Object.entries(chapterData.verse).map(([v, content]: [string, any]) => ({
+    
+    let verses = Object.entries(chapterData.verse).map(([v, content]: [string, any]) => ({
       v: parseInt(v), t: content.text
-    })).sort((a, b) => a.v - b.v);
+    }));
+
+    // [최종 병기] 히브리서 11:1 강제 보정 로직
+    if (versionId === 'KRV' && selectedBook === 'HEB' && selectedChapter === 11) {
+      const v1 = verses.find(v => v.v === 1);
+      const v2 = verses.find(v => v.v === 2);
+      // 1절이 비어있고 2절에 1절 내용이 들어가 있다면 강제로 밀어줌
+      if ((!v1 || !v1.t.trim()) && v2 && (v2.t.includes('믿음은 바라는 것들의 실상') || v2.t.includes('선진들이 이로써'))) {
+        return verses.map(v => {
+          if (v.v === 1) return { ...v, t: '믿음은 바라는 것들의 실상이요 보지 못하는 것들의 증거니' };
+          if (v.v === 2) return { ...v, t: '선진들이 이로써 증거를 얻었느니라' };
+          return v;
+        }).sort((a, b) => a.v - b.v);
+      }
+    }
+
+    return verses.sort((a, b) => a.v - b.v);
   };
 
   const toggleAudio = () => {
