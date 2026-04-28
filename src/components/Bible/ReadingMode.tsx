@@ -383,23 +383,27 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     
     let verses = Object.entries(chapterData.verse).map(([v, content]: [string, any]) => ({
       v: parseInt(v), t: content.text
-    }));
+    })).sort((a, b) => a.v - b.v);
 
-    // [최종 병기] 히브리서 11:1 강제 보정 로직
-    if (versionId === 'KRV' && selectedBook === 'HEB' && selectedChapter === 11) {
+    // [범용 보정 엔진] 개역한글(KRV) 인덱스 밀림 현상 실시간 감지 및 수정
+    if (versionId === 'KRV') {
       const v1 = verses.find(v => v.v === 1);
       const v2 = verses.find(v => v.v === 2);
-      // 1절이 비어있고 2절에 1절 내용이 들어가 있다면 강제로 밀어줌
-      if ((!v1 || !v1.t.trim()) && v2 && (v2.t.includes('믿음은 바라는 것들의 실상') || v2.t.includes('선진들이 이로써'))) {
-        return verses.map(v => {
-          if (v.v === 1) return { ...v, t: '믿음은 바라는 것들의 실상이요 보지 못하는 것들의 증거니' };
-          if (v.v === 2) return { ...v, t: '선진들이 이로써 증거를 얻었느니라' };
-          return v;
-        }).sort((a, b) => a.v - b.v);
+      
+      // 1절이 비어있고 2절에 내용이 있는 경우 (데이터 밀림 감지)
+      if ((!v1 || !v1.t || !v1.t.trim()) && v2 && v2.t && v2.t.trim()) {
+        // 모든 절을 한 칸씩 앞으로 당김
+        return verses.map((v, index) => {
+          const nextVerse = verses[index + 1];
+          return {
+            ...v,
+            t: nextVerse ? nextVerse.t : "" // 다음 절 내용을 현재 절로 가져옴
+          };
+        }).filter(v => v.t); // 내용이 없는 마지막 절은 제외하거나 유지 (여기서는 유지)
       }
     }
 
-    return verses.sort((a, b) => a.v - b.v);
+    return verses;
   };
 
   const toggleAudio = () => {
