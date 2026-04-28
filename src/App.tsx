@@ -73,7 +73,7 @@ export default function App() {
       <div className="flex min-h-screen bg-[var(--color-bg)]">
         {/* Sidebar for PC */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-[10000] w-64 bg-[var(--color-primary)] text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+          "fixed inset-y-0 left-0 z-[90] w-64 bg-[var(--color-primary)] text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="flex flex-col h-full p-6">
@@ -155,7 +155,7 @@ export default function App() {
         {/* Global Mobile Overlay for Sidebar */}
         {isSidebarOpen && (
           <div 
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] lg:hidden animate-in fade-in duration-300"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[80] lg:hidden animate-in fade-in duration-300"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
