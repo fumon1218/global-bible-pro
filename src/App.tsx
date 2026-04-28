@@ -104,7 +104,7 @@ export default function App() {
                 </button>
               ))}
               <div className="pt-2 px-4">
-                <p className="text-[9px] font-black text-white/30 tracking-widest uppercase opacity-80">Version 1.2.9 Premium</p>
+                <p className="text-[9px] font-black text-white/30 tracking-widest uppercase opacity-80">Version 1.3.1 Premium</p>
               </div>
             </nav>
 
