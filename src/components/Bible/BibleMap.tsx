@@ -80,94 +80,95 @@ export default function BibleMap() {
         </div>
       ) : (
         <div className="flex-1 flex flex-col lg:flex-row gap-6 p-8 pt-4 overflow-hidden">
-        {/* Left: Map Viewer */}
-        <div className="flex-1 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative group">
-          <div 
-            className="w-full h-full flex items-center justify-center overflow-auto no-scrollbar"
-            style={{ cursor: zoom > 1 ? 'grab' : 'default' }}
-          >
+          {/* Left: Map Viewer */}
+          <div className="flex-1 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative group">
             <div 
-              className="transition-transform duration-300 ease-out p-4"
-              style={{ transform: `scale(${zoom})` }}
+              className="w-full h-full flex items-center justify-center overflow-auto no-scrollbar"
+              style={{ cursor: zoom > 1 ? 'grab' : 'default' }}
             >
-              <img 
-                src={selectedMap.imageUrl} 
-                alt={selectedMap.title}
-                className="max-w-full max-h-full rounded-xl shadow-lg"
-              />
+              <div 
+                className="transition-transform duration-300 ease-out p-4"
+                style={{ transform: `scale(${zoom})` }}
+              >
+                <img 
+                  src={selectedMap.imageUrl} 
+                  alt={selectedMap.title}
+                  className="max-w-full max-h-full rounded-xl shadow-lg"
+                />
+              </div>
+            </div>
+
+            {/* Controls Overlay */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+              <button 
+                onClick={() => handleZoom(-0.2)}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600"
+                title="축소"
+              >
+                <ZoomOut size={20} />
+              </button>
+              <div className="w-12 text-center text-xs font-bold text-gray-400">
+                {Math.round(zoom * 100)}%
+              </div>
+              <button 
+                onClick={() => handleZoom(0.2)}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600"
+                title="확대"
+              >
+                <ZoomIn size={20} />
+              </button>
+              <div className="w-px h-4 bg-gray-200 mx-1" />
+              <button 
+                onClick={() => setIsFullScreen(!isFullScreen)}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600"
+                title="전체 화면"
+              >
+                <Maximize2 size={20} />
+              </button>
             </div>
           </div>
 
-          {/* Controls Overlay */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/50 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-            <button 
-              onClick={() => handleZoom(-0.2)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600"
-              title="축소"
-            >
-              <ZoomOut size={20} />
-            </button>
-            <div className="w-12 text-center text-xs font-bold text-gray-400">
-              {Math.round(zoom * 100)}%
+          {/* Right: Info & Map List */}
+          <div className="w-full lg:w-80 flex flex-col gap-6">
+            <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {selectedMap.tags.map(tag => (
+                  <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full">#{tag}</span>
+                ))}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">{selectedMap.title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                {selectedMap.description}
+              </p>
+              <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl text-amber-700 text-xs border border-amber-100">
+                <Info size={14} />
+                <span>지도를 확대하여 상세 지명을 확인하세요.</span>
+              </div>
             </div>
-            <button 
-              onClick={() => handleZoom(0.2)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600"
-              title="확대"
-            >
-              <ZoomIn size={20} />
-            </button>
-            <div className="w-px h-4 bg-gray-200 mx-1" />
-            <button 
-              onClick={() => setIsFullScreen(!isFullScreen)}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-600"
-              title="전체 화면"
-            >
-              <Maximize2 size={20} />
-            </button>
-          </div>
-        </div>
 
-        {/* Right: Info & Map List */}
-        <div className="w-full lg:w-80 flex flex-col gap-6">
-          <div className="bg-white rounded-3xl p-6 shadow-xl border border-gray-100 space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {selectedMap.tags.map(tag => (
-                <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full">#{tag}</span>
-              ))}
-            </div>
-            <h3 className="text-xl font-bold text-gray-900">{selectedMap.title}</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              {selectedMap.description}
-            </p>
-            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl text-amber-700 text-xs border border-amber-100">
-              <Info size={14} />
-              <span>지도를 확대하여 상세 지명을 확인하세요.</span>
-            </div>
-          </div>
-
-          <div className="flex-1 bg-white rounded-3xl p-6 shadow-xl border border-gray-100 overflow-y-auto">
-            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">지도 목록</h4>
-            <div className="space-y-3">
-              {MAP_DATA.map(map => (
-                <button
-                  key={map.id}
-                  onClick={() => { setSelectedMap(map); setZoom(1); }}
-                  className={cn(
-                    "w-full text-left p-4 rounded-2xl transition-all border group",
-                    selectedMap.id === map.id 
-                      ? "bg-slate-900 border-slate-900 text-white shadow-lg" 
-                      : "bg-white border-gray-100 hover:border-gray-300"
-                  )}
-                >
-                  <p className={cn("font-bold text-sm", selectedMap.id === map.id ? "text-white" : "text-gray-900")}>
-                    {map.title}
-                  </p>
-                  <p className={cn("text-[10px] mt-1", selectedMap.id === map.id ? "text-gray-400" : "text-gray-400 group-hover:text-gray-500")}>
-                    주요 인물: {map.tags[1]}
-                  </p>
-                </button>
-              ))}
+            <div className="flex-1 bg-white rounded-3xl p-6 shadow-xl border border-gray-100 overflow-y-auto">
+              <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">지도 목록</h4>
+              <div className="space-y-3">
+                {MAP_DATA.map(map => (
+                  <button
+                    key={map.id}
+                    onClick={() => { setSelectedMap(map); setZoom(1); }}
+                    className={cn(
+                      "w-full text-left p-4 rounded-2xl transition-all border group",
+                      selectedMap.id === map.id 
+                        ? "bg-slate-900 border-slate-900 text-white shadow-lg" 
+                        : "bg-white border-gray-100 hover:border-gray-300"
+                    )}
+                  >
+                    <p className={cn("font-bold text-sm", selectedMap.id === map.id ? "text-white" : "text-gray-900")}>
+                      {map.title}
+                    </p>
+                    <p className={cn("text-[10px] mt-1", selectedMap.id === map.id ? "text-gray-400" : "text-gray-400 group-hover:text-gray-500")}>
+                      주요 인물: {map.tags[1]}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

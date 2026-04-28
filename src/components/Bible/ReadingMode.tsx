@@ -10,7 +10,8 @@ import UserDashboard from './UserDashboard';
 import ReadingPlan from './ReadingPlan';
 import VersionSelector from './VersionSelector';
 import ReadingProgress from './ReadingProgress';
-import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon, BookOpen, Headphones, Settings, CheckCircle2 } from 'lucide-react';
+import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon, BookOpen, Headphones, Settings, CheckCircle2, MapPin, Navigation } from 'lucide-react';
+import { BIBLE_PLACES } from '../../data/biblePlaces';
 import { cn } from '../../lib/utils';
 import { db, auth } from '../../lib/firebase';
 import { db as localDb } from '../../lib/db';
@@ -55,6 +56,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   const [isVersionSelectorOpen, setIsVersionSelectorOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
   const [readingVerse, setReadingVerse] = useState<number | null>(null);
+  const [selectedMapPlace, setSelectedMapPlace] = useState<any>(null);
 
   // Appearance States
   const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('gbp_font_size')) || 18);
@@ -406,6 +408,50 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     return verses;
   };
 
+  const renderVerseText = (text: string) => {
+    if (!text) return null;
+    
+    // Simple place name matching logic
+    let elements: (string | JSX.Element)[] = [text];
+    
+    BIBLE_PLACES.slice(0, 50).forEach(place => {
+      const newElements: (string | JSX.Element)[] = [];
+      elements.forEach(el => {
+        if (typeof el !== 'string') {
+          newElements.push(el);
+          return;
+        }
+        
+        const parts = el.split(place.name);
+        if (parts.length > 1) {
+          parts.forEach((part, i) => {
+            newElements.push(part);
+            if (i < parts.length - 1) {
+              newElements.push(
+                <span 
+                  key={`${place.id}-${i}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedMapPlace(place);
+                  }}
+                  className="inline-flex items-center gap-0.5 text-indigo-600 font-bold border-b border-indigo-200 hover:bg-indigo-50 px-0.5 rounded cursor-pointer transition-colors"
+                >
+                  <MapPin size={10} />
+                  {place.name}
+                </span>
+              );
+            }
+          });
+        } else {
+          newElements.push(el);
+        }
+      });
+      elements = newElements;
+    });
+    
+    return <>{elements}</>;
+  };
+
   const toggleAudio = () => {
     if (isPlaying) {
       window.speechSynthesis.cancel();
@@ -586,7 +632,12 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
                     <div className="flex gap-4">
                       <span className={cn("text-xs font-bold mt-2 shrink-0 w-6 text-right", highlights[v.v]?.color ? "text-gray-600" : "text-indigo-400")}>{v.v}</span>
                       <div className="flex flex-col gap-2 flex-1">
-                        <p className={cn("bible-text transition-all duration-300", highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : "", fontFamily === 'serif' ? 'font-serif' : 'font-sans' )} style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight, color: theme === 'dark' ? '#d1d5db' : (theme === 'sepia' ? '#5b4636' : '#1f2937') }} dangerouslySetInnerHTML={{ __html: v.t }} />
+                        <div 
+                          className={cn("bible-text transition-all duration-300", highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : "", fontFamily === 'serif' ? 'font-serif' : 'font-sans' )} 
+                          style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight, color: theme === 'dark' ? '#d1d5db' : (theme === 'sepia' ? '#5b4636' : '#1f2937') }}
+                        >
+                          {renderVerseText(v.t)}
+                        </div>
                         {selectedVerse === v.v && (
                           <div className="flex flex-wrap items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 z-20">
                             <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl shadow-lg border border-gray-100">
@@ -669,6 +720,36 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
       <UserDashboard isOpen={isDashboardOpen} onClose={() => setIsDashboardOpen(false)} onNavigate={(b, c, v) => { setSelectedBook(b); setSelectedChapter(c); setIsDashboardOpen(false); setTimeout(() => { const element = document.getElementById(`verse-${v}`); if (element) { element.scrollIntoView({ behavior: 'smooth', block: 'center' }); setSelectedVerse(v); } }, 800); }} />
       {selectedVerse && <NoteEditor isOpen={isNoteEditorOpen} onClose={() => setIsNoteEditorOpen(false)} bookId={selectedBook} bookName={currentBook?.name || ''} chapter={selectedChapter} verse={selectedVerse} verseText={currentVerses(primaryVersion).find(verse => verse.v === selectedVerse)?.t || ''} />}
       <BibleSelector isOpen={isSelectorOpen} onClose={() => setIsSelectorOpen(false)} currentBook={selectedBook} currentChapter={selectedChapter} maxVerse={currentVerses(primaryVersion).length} onSelect={(bookId, chap, vers) => { setSelectedBook(bookId); setSelectedChapter(chap); setIsSelectorOpen(false); setTimeout(() => { const element = document.getElementById(`verse-${vers}`); if (element) { element.scrollIntoView({ behavior: 'smooth', block: 'center' }); setSelectedVerse(vers); } }, 800); }} />
+
+      {/* Place Information Card */}
+      {selectedMapPlace && (
+        <div className="fixed bottom-24 left-6 right-6 lg:left-1/2 lg:-translate-x-1/2 lg:w-full lg:max-w-lg z-[100] animate-in slide-in-from-bottom duration-300">
+          <div className="bg-white/95 backdrop-blur-md p-6 rounded-3xl shadow-2xl border border-indigo-100 flex gap-5 items-center">
+            <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <Navigation size={28} className="text-indigo-600" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-bold text-gray-900 text-lg">{selectedMapPlace.name}</h3>
+                <button onClick={() => setSelectedMapPlace(null)} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                  <X size={18} className="text-gray-400" />
+                </button>
+              </div>
+              <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">{selectedMapPlace.nameEn}</p>
+              <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{selectedMapPlace.description}</p>
+              <button 
+                onClick={() => {
+                  alert(`${selectedMapPlace.name} 지도로 이동합니다.`);
+                  setSelectedMapPlace(null);
+                }}
+                className="mt-3 text-xs font-bold text-indigo-600 flex items-center gap-1 hover:gap-2 transition-all"
+              >
+                지도로 확인하기 <Navigation size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
