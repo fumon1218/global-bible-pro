@@ -411,16 +411,29 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   const renderVerseText = (text: string) => {
     if (!text) return "";
     
-    let processedText = text;
+    // 1. Temporarily extract HTML tags to avoid replacing names inside them
+    const tags: string[] = [];
+    let placeholderIdx = 0;
+    const textWithPlaceholders = text.replace(/<[^>]+>/g, (match) => {
+      tags.push(match);
+      return `__TAG_PLACEHOLDER_${placeholderIdx++}__`;
+    });
     
-    // Use regex to replace place names with HTML markers that we can style and click
+    let processedText = textWithPlaceholders;
+    
+    // 2. Replace place names in the remaining text
     BIBLE_PLACES.slice(0, 50).forEach(place => {
-      // Avoid replacing if it's already inside a tag
-      const regex = new RegExp(`(?<!<[^>]*)${place.name}(?![^<]*>)`, 'g');
+      // Use a standard global regex without lookbehind
+      const regex = new RegExp(place.name, 'g');
       processedText = processedText.replace(regex, `<span class="place-link-highlight" data-place-id="${place.id}">${place.name}</span>`);
     });
     
-    return processedText;
+    // 3. Put back the HTML tags
+    const finalText = processedText.replace(/__TAG_PLACEHOLDER_(\d+)__/g, (_, idx) => {
+      return tags[parseInt(idx)];
+    });
+    
+    return finalText;
   };
 
   const toggleAudio = () => {
