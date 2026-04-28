@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Book, Brain, Search, Settings as SettingsIcon, Menu, X, Users, Share2 } from 'lucide-react';
+import { Book, Brain, Search, Settings as SettingsIcon, Menu, X, Users, Share2, Map } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 
@@ -7,6 +7,7 @@ import ReadingMode from './components/Bible/ReadingMode';
 import MemoryMode from './components/Memory/MemoryMode';
 import BibleSearch from './components/Bible/BibleSearch';
 import TrackerMode from './components/Tracker/TrackerMode';
+import BibleMap from './components/Bible/BibleMap';
 import { ReadingProvider } from './contexts/ReadingContext';
 
 const SearchView = ({ onSelect }: { onSelect: (b: string, c: number, v: number) => void }) => (
@@ -53,7 +54,7 @@ const SettingsView = () => (
   </div>
 );
 
-type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'TRACKER' | 'SETTINGS';
+type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'TRACKER' | 'MAP' | 'SETTINGS';
 
 export default function App() {
   const { t } = useTranslation();
@@ -65,6 +66,7 @@ export default function App() {
     { id: 'MEMORY', label: t('menu.memory'), icon: Brain },
     { id: 'TRACKER', label: t('menu.tracker'), icon: Users },
     { id: 'SEARCH', label: t('menu.search'), icon: Search },
+    { id: 'MAP', label: '성경 지도', icon: Map },
     { id: 'SETTINGS', label: t('menu.settings'), icon: SettingsIcon },
   ];
 
@@ -148,6 +150,7 @@ export default function App() {
               }} />
             )}
             {view === 'TRACKER' && <TrackerMode />}
+            {view === 'MAP' && <BibleMap />}
             {view === 'SETTINGS' && <SettingsView />}
           </main>
         </div>
