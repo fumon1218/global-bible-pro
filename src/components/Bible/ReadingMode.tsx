@@ -10,8 +10,7 @@ import UserDashboard from './UserDashboard';
 import ReadingPlan from './ReadingPlan';
 import VersionSelector from './VersionSelector';
 import ReadingProgress from './ReadingProgress';
-import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon, BookOpen, Headphones, Settings, CheckCircle2, MapPin, Navigation } from 'lucide-react';
-import { BIBLE_PLACES } from '../../data/biblePlaces';
+import { Type, Edit3, StickyNote, User, Calendar, Menu as MenuIcon, BookOpen, Headphones, Settings, CheckCircle2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { db, auth } from '../../lib/firebase';
 import { db as localDb } from '../../lib/db';
@@ -56,7 +55,6 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   const [isVersionSelectorOpen, setIsVersionSelectorOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
   const [readingVerse, setReadingVerse] = useState<number | null>(null);
-  const [selectedMapPlace, setSelectedMapPlace] = useState<any>(null);
 
   // Appearance States
   const [fontSize, setFontSize] = useState(() => Number(localStorage.getItem('gbp_font_size')) || 18);
@@ -408,33 +406,7 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     return verses;
   };
 
-  const renderVerseText = (text: string) => {
-    if (!text) return "";
-    
-    // 1. Temporarily extract HTML tags to avoid replacing names inside them
-    const tags: string[] = [];
-    let placeholderIdx = 0;
-    const textWithPlaceholders = text.replace(/<[^>]+>/g, (match) => {
-      tags.push(match);
-      return `__TAG_PLACEHOLDER_${placeholderIdx++}__`;
-    });
-    
-    let processedText = textWithPlaceholders;
-    
-    // 2. Replace place names in the remaining text
-    BIBLE_PLACES.slice(0, 50).forEach(place => {
-      // Use a standard global regex without lookbehind
-      const regex = new RegExp(place.name, 'g');
-      processedText = processedText.replace(regex, `<span class="place-link-highlight" data-place-id="${place.id}">${place.name}</span>`);
-    });
-    
-    // 3. Put back the HTML tags
-    const finalText = processedText.replace(/__TAG_PLACEHOLDER_(\d+)__/g, (_, idx) => {
-      return tags[parseInt(idx)];
-    });
-    
-    return finalText;
-  };
+
 
   const toggleAudio = () => {
     if (isPlaying) {
@@ -616,21 +588,10 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
                     <div className="flex gap-4">
                       <span className={cn("text-xs font-bold mt-2 shrink-0 w-6 text-right", highlights[v.v]?.color ? "text-gray-600" : "text-indigo-400")}>{v.v}</span>
                       <div className="flex flex-col gap-2 flex-1">
-                        <div 
+                        <p 
                           className={cn("bible-text transition-all duration-300", highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : "", fontFamily === 'serif' ? 'font-serif' : 'font-sans' )} 
                           style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight, color: theme === 'dark' ? '#d1d5db' : (theme === 'sepia' ? '#5b4636' : '#1f2937') }}
-                          dangerouslySetInnerHTML={{ __html: renderVerseText(v.t) }}
-                          onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                            const target = e.target as HTMLElement;
-                            if (target.classList.contains('place-link-highlight')) {
-                              const placeId = target.getAttribute('data-place-id');
-                              const place = BIBLE_PLACES.find(p => p.id === placeId);
-                              if (place) {
-                                e.stopPropagation();
-                                setSelectedMapPlace(place);
-                              }
-                            }
-                          }}
+                          dangerouslySetInnerHTML={{ __html: v.t }}
                         />
                         {selectedVerse === v.v && (
                           <div className="flex flex-wrap items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 z-20">
@@ -715,37 +676,6 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
       {selectedVerse && <NoteEditor isOpen={isNoteEditorOpen} onClose={() => setIsNoteEditorOpen(false)} bookId={selectedBook} bookName={currentBook?.name || ''} chapter={selectedChapter} verse={selectedVerse} verseText={currentVerses(primaryVersion).find(verse => verse.v === selectedVerse)?.t || ''} />}
       <BibleSelector isOpen={isSelectorOpen} onClose={() => setIsSelectorOpen(false)} currentBook={selectedBook} currentChapter={selectedChapter} maxVerse={currentVerses(primaryVersion).length} onSelect={(bookId, chap, vers) => { setSelectedBook(bookId); setSelectedChapter(chap); setIsSelectorOpen(false); setTimeout(() => { const element = document.getElementById(`verse-${vers}`); if (element) { element.scrollIntoView({ behavior: 'smooth', block: 'center' }); setSelectedVerse(vers); } }, 800); }} />
 
-      {/* Place Information Card */}
-      {selectedMapPlace && (
-        <div className="fixed bottom-24 left-6 right-6 lg:left-1/2 lg:-translate-x-1/2 lg:w-full lg:max-w-lg z-[100] animate-in slide-in-from-bottom duration-300">
-          <div className="bg-white/95 backdrop-blur-md p-6 rounded-3xl shadow-2xl border border-indigo-100 flex gap-5 items-center">
-            <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <Navigation size={28} className="text-indigo-600" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="font-bold text-gray-900 text-lg">{selectedMapPlace.name}</h3>
-                <button onClick={() => setSelectedMapPlace(null)} className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                  <X size={18} className="text-gray-400" />
-                </button>
-              </div>
-              <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">{selectedMapPlace.nameEn}</p>
-              <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{selectedMapPlace.description}</p>
-              <button 
-                onClick={() => {
-                  // Actually change view to MAP and set the selected place
-                  window.dispatchEvent(new CustomEvent('changeView', { detail: 'MAP' }));
-                  window.dispatchEvent(new CustomEvent('selectMapPlace', { detail: selectedMapPlace }));
-                  setSelectedMapPlace(null);
-                }}
-                className="mt-3 text-xs font-bold text-indigo-600 flex items-center gap-1 hover:gap-2 transition-all"
-              >
-                지도로 확인하기 <Navigation size={12} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

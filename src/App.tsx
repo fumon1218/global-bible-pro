@@ -7,7 +7,7 @@ import ReadingMode from './components/Bible/ReadingMode';
 import MemoryMode from './components/Memory/MemoryMode';
 import BibleSearch from './components/Bible/BibleSearch';
 import TrackerMode from './components/Tracker/TrackerMode';
-import BibleMap from './components/Bible/BibleMap';
+
 import { ReadingProvider } from './contexts/ReadingContext';
 
 const SearchView = ({ onSelect }: { onSelect: (b: string, c: number, v: number) => void }) => (
@@ -54,25 +54,17 @@ const SettingsView = () => (
   </div>
 );
 
-type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'TRACKER' | 'MAP' | 'SETTINGS';
+type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'TRACKER' | 'SETTINGS';
 
 export default function App() {
   const { t } = useTranslation();
   const [view, setView] = useState<ViewMode>('READING');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  React.useEffect(() => {
-    const handleChangeView = (e: any) => setView(e.detail);
-    window.addEventListener('changeView', handleChangeView);
-    return () => window.removeEventListener('changeView', handleChangeView);
-  }, []);
 
   const navItems = [
     { id: 'READING', label: t('menu.reading'), icon: Book },
     { id: 'MEMORY', label: t('menu.memory'), icon: Brain },
     { id: 'TRACKER', label: t('menu.tracker'), icon: Users },
     { id: 'SEARCH', label: t('menu.search'), icon: Search },
-    { id: 'MAP', label: '성경 지도', icon: Map },
     { id: 'SETTINGS', label: t('menu.settings'), icon: SettingsIcon },
   ];
 
@@ -156,7 +148,6 @@ export default function App() {
               }} />
             )}
             {view === 'TRACKER' && <TrackerMode />}
-            {view === 'MAP' && <BibleMap />}
             {view === 'SETTINGS' && <SettingsView />}
           </main>
         </div>
