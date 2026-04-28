@@ -59,6 +59,7 @@ type ViewMode = 'READING' | 'MEMORY' | 'SEARCH' | 'TRACKER' | 'SETTINGS';
 export default function App() {
   const { t } = useTranslation();
   const [view, setView] = useState<ViewMode>('READING');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navItems = [
     { id: 'READING', label: t('menu.reading'), icon: Book },
