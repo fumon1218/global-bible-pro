@@ -409,47 +409,18 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
   };
 
   const renderVerseText = (text: string) => {
-    if (!text) return null;
+    if (!text) return "";
     
-    // Simple place name matching logic
-    let elements: (string | JSX.Element)[] = [text];
+    let processedText = text;
     
+    // Use regex to replace place names with HTML markers that we can style and click
     BIBLE_PLACES.slice(0, 50).forEach(place => {
-      const newElements: (string | JSX.Element)[] = [];
-      elements.forEach(el => {
-        if (typeof el !== 'string') {
-          newElements.push(el);
-          return;
-        }
-        
-        const parts = el.split(place.name);
-        if (parts.length > 1) {
-          parts.forEach((part, i) => {
-            newElements.push(part);
-            if (i < parts.length - 1) {
-              newElements.push(
-                <span 
-                  key={`${place.id}-${i}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedMapPlace(place);
-                  }}
-                  className="inline-flex items-center gap-0.5 text-indigo-600 font-bold border-b border-indigo-200 hover:bg-indigo-50 px-0.5 rounded cursor-pointer transition-colors"
-                >
-                  <MapPin size={10} />
-                  {place.name}
-                </span>
-              );
-            }
-          });
-        } else {
-          newElements.push(el);
-        }
-      });
-      elements = newElements;
+      // Avoid replacing if it's already inside a tag
+      const regex = new RegExp(`(?<!<[^>]*)${place.name}(?![^<]*>)`, 'g');
+      processedText = processedText.replace(regex, `<span class="place-link-highlight" data-place-id="${place.id}">${place.name}</span>`);
     });
     
-    return <>{elements}</>;
+    return processedText;
   };
 
   const toggleAudio = () => {
@@ -635,9 +606,19 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
                         <div 
                           className={cn("bible-text transition-all duration-300", highlights[v.v]?.underline ? "underline decoration-gray-400 decoration-2 underline-offset-4" : "", fontFamily === 'serif' ? 'font-serif' : 'font-sans' )} 
                           style={{ fontSize: `${fontSize}px`, lineHeight: lineHeight, color: theme === 'dark' ? '#d1d5db' : (theme === 'sepia' ? '#5b4636' : '#1f2937') }}
-                        >
-                          {renderVerseText(v.t)}
-                        </div>
+                          dangerouslySetInnerHTML={{ __html: renderVerseText(v.t) }}
+                          onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                            const target = e.target as HTMLElement;
+                            if (target.classList.contains('place-link-highlight')) {
+                              const placeId = target.getAttribute('data-place-id');
+                              const place = BIBLE_PLACES.find(p => p.id === placeId);
+                              if (place) {
+                                e.stopPropagation();
+                                setSelectedMapPlace(place);
+                              }
+                            }
+                          }}
+                        />
                         {selectedVerse === v.v && (
                           <div className="flex flex-wrap items-center gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 z-20">
                             <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl shadow-lg border border-gray-100">
