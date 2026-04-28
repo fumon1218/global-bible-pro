@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Map as MapIcon, ZoomIn, ZoomOut, Maximize2, ChevronLeft, ChevronRight, Info } from 'lucide-react';
+import { Map as MapIcon, ZoomIn, ZoomOut, Maximize2, ChevronLeft, ChevronRight, Info, Compass, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import InteractiveMap from './InteractiveMap';
 
 interface BibleMapData {
   id: string;
@@ -28,6 +29,7 @@ const MAP_DATA: BibleMapData[] = [
 ];
 
 export default function BibleMap() {
+  const [viewMode, setViewMode] = useState<'STATIC' | 'INTERACTIVE'>('INTERACTIVE');
   const [selectedMap, setSelectedMap] = useState(MAP_DATA[0]);
   const [zoom, setZoom] = useState(1);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -46,9 +48,38 @@ export default function BibleMap() {
           <h2 className="text-3xl font-bold premium-heading">성경 지도</h2>
         </div>
         <p className="text-gray-400 text-sm">성경의 주요 역사적 장소와 여정을 고화질 지도로 확인하세요.</p>
+        
+        {/* Tab Switcher */}
+        <div className="flex bg-gray-100 p-1 rounded-2xl w-fit mt-6">
+          <button 
+            onClick={() => setViewMode('INTERACTIVE')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all",
+              viewMode === 'INTERACTIVE' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+            )}
+          >
+            <Compass size={16} />
+            지도 탐사 (Interactive)
+          </button>
+          <button 
+            onClick={() => setViewMode('STATIC')}
+            className={cn(
+              "flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all",
+              viewMode === 'STATIC' ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400 hover:text-gray-600"
+            )}
+          >
+            <ImageIcon size={16} />
+            고전 지도 (Gallery)
+          </button>
+        </div>
       </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 p-8 pt-4 overflow-hidden">
+      {viewMode === 'INTERACTIVE' ? (
+        <div className="flex-1 overflow-hidden border-t border-gray-100">
+          <InteractiveMap />
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col lg:flex-row gap-6 p-8 pt-4 overflow-hidden">
         {/* Left: Map Viewer */}
         <div className="flex-1 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden relative group">
           <div 
@@ -140,7 +171,7 @@ export default function BibleMap() {
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
