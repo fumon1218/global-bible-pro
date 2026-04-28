@@ -55,16 +55,18 @@ export default function BibleSelector({ isOpen, onClose, onSelect, currentBook, 
 
   if (!isOpen) return null;
 
-  const filteredCategories = CATEGORIES[selectedTab].map(cat => ({
+  const filteredCategories = (CATEGORIES[selectedTab] || []).map(cat => ({
     ...cat,
     books: cat.books.filter(id => {
       const b = BOOKS.find(book => book.id === id);
-      return b && (b.name.includes(searchTerm) || b.enName.toLowerCase().includes(searchTerm.toLowerCase()));
+      if (!b) return false;
+      const search = (searchTerm || '').toLowerCase();
+      return b.name.includes(search) || b.enName.toLowerCase().includes(search);
     })
   })).filter(cat => cat.books.length > 0);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4">
+    <div className="fixed inset-0 z-[11000] flex items-center justify-center p-0 md:p-4">
       <div 
         className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-in fade-in duration-300" 
         onClick={onClose}
