@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { BIBLE_PLACES, BiblePlace } from '../../data/biblePlaces';
@@ -25,7 +25,13 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 function ChangeView({ center, zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
-  map.setView(center, zoom);
+  useEffect(() => {
+    map.setView(center, zoom);
+    // Force invalidation of size to fix blank map issue
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 400);
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -35,6 +41,19 @@ export default function InteractiveMap() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([31.7683, 35.2137]); // Default: Jerusalem
   const [zoom, setZoom] = useState(6);
 
+  useEffect(() => {
+    const handleSelectPlace = (e: any) => {
+      const place = e.detail;
+      if (place) {
+        setSelectedPlace(place);
+        setMapCenter([place.lat, place.lng]);
+        setZoom(13);
+      }
+    };
+    window.addEventListener('selectMapPlace', handleSelectPlace);
+    return () => window.removeEventListener('selectMapPlace', handleSelectPlace);
+  }, []);
+
   const filteredPlaces = BIBLE_PLACES.filter(p => 
     p.name.includes(searchTerm) || p.nameEn.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -42,7 +61,7 @@ export default function InteractiveMap() {
   const handlePlaceSelect = (place: BiblePlace) => {
     setSelectedPlace(place);
     setMapCenter([place.lat, place.lng]);
-    setZoom(10);
+    setZoom(12);
   };
 
   return (
@@ -90,21 +109,17 @@ export default function InteractiveMap() {
               </div>
             </button>
           ))}
-          {filteredPlaces.length === 0 && (
-            <div className="py-20 text-center">
-              <p className="text-sm text-gray-400">검색 결과가 없습니다.</p>
-            </div>
-          )}
         </div>
       </div>
 
       {/* Right: Map Area */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative min-h-[500px] lg:min-h-0">
         <MapContainer 
           center={mapCenter} 
           zoom={zoom} 
           scrollWheelZoom={true}
-          className="w-full h-full z-10"
+          style={{ height: '100%', width: '100%', background: '#e5e7eb' }}
+          className="z-10"
           zoomControl={false}
         >
           <ChangeView center={mapCenter} zoom={zoom} />
@@ -149,7 +164,7 @@ export default function InteractiveMap() {
           </button>
         </div>
 
-        {/* Place Detail Overlay (Mobile/Desktop) */}
+        {/* Place Detail Overlay */}
         {selectedPlace && (
           <div className="absolute bottom-6 left-6 right-6 lg:left-1/2 lg:-translate-x-1/2 lg:w-full lg:max-w-md z-[100] animate-in slide-in-from-bottom duration-300">
             <div className="bg-white/90 backdrop-blur-md p-6 rounded-3xl shadow-2xl border border-white/20 flex gap-4">

@@ -61,6 +61,12 @@ export default function App() {
   const [view, setView] = useState<ViewMode>('READING');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  React.useEffect(() => {
+    const handleChangeView = (e: any) => setView(e.detail);
+    window.addEventListener('changeView', handleChangeView);
+    return () => window.removeEventListener('changeView', handleChangeView);
+  }, []);
+
   const navItems = [
     { id: 'READING', label: t('menu.reading'), icon: Book },
     { id: 'MEMORY', label: t('menu.memory'), icon: Brain },

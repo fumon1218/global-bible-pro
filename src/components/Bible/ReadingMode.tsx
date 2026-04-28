@@ -739,7 +739,9 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
               <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{selectedMapPlace.description}</p>
               <button 
                 onClick={() => {
-                  alert(`${selectedMapPlace.name} 지도로 이동합니다.`);
+                  // Actually change view to MAP and set the selected place
+                  window.dispatchEvent(new CustomEvent('changeView', { detail: 'MAP' }));
+                  window.dispatchEvent(new CustomEvent('selectMapPlace', { detail: selectedMapPlace }));
                   setSelectedMapPlace(null);
                 }}
                 className="mt-3 text-xs font-bold text-indigo-600 flex items-center gap-1 hover:gap-2 transition-all"
