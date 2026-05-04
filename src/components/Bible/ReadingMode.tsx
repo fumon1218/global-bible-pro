@@ -381,25 +381,31 @@ export default function ReadingMode({ onOpenSidebar }: ReadingModeProps) {
     const chapterData = data.book[book?.jsonId || '']?.chapter[selectedChapter.toString()];
     if (!chapterData) return [];
     
-    let verses = Object.entries(chapterData.verse).map(([v, content]: [string, any]) => ({
-      v: parseInt(v), t: content.text
-    })).sort((a, b) => a.v - b.v);
+    let verses = Object.entries(chapterData.verse)
+      .map(([v, content]: [string, any]) => ({ v: parseInt(v), t: content.text }))
+      .filter(v => v.v > 0) // 0절(제목 등)은 제외
+      .sort((a, b) => a.v - b.v);
 
-    // [범용 보정 엔진] 개역한글(KRV) 인덱스 밀림 현상 실시간 감지 및 수정
-    if (versionId === 'KRV') {
-      const v1 = verses.find(v => v.v === 1);
-      const v2 = verses.find(v => v.v === 2);
-      
-      // 1절이 비어있고 2절에 내용이 있는 경우 (데이터 밀림 감지)
-      if ((!v1 || !v1.t || !v1.t.trim()) && v2 && v2.t && v2.t.trim()) {
-        // 모든 절을 한 칸씩 앞으로 당김
-        return verses.map((v, index) => {
+    // [범용 보정 엔진] 모든 번역본에 대한 인덱스 밀림 현상 실시간 감지 및 수정
+    const firstVerse = verses[0];
+    if (firstVerse) {
+      // 케이스 1: 1절 키는 존재하지만 내용이 비어있는 경우 (예: {"1": "", "2": "내용..."})
+      if (firstVerse.v === 1 && (!firstVerse.t || !firstVerse.t.trim())) {
+        verses = verses.map((v, index) => {
           const nextVerse = verses[index + 1];
           return {
             ...v,
-            t: nextVerse ? nextVerse.t : "" // 다음 절 내용을 현재 절로 가져옴
+            t: nextVerse ? nextVerse.t : "" 
           };
-        }).filter(v => v.t); // 내용이 없는 마지막 절은 제외하거나 유지 (여기서는 유지)
+        }).filter(v => v.t); 
+      } 
+      // 케이스 2: 1절 키 자체가 누락된 경우 (예: {"2": "내용..."})
+      else if (firstVerse.v > 1) {
+        const shiftAmount = firstVerse.v - 1;
+        verses = verses.map(v => ({
+          ...v,
+          v: v.v - shiftAmount
+        }));
       }
     }
 
